@@ -1,0 +1,13 @@
+.git
+.gitignore
+node_modules
+.venv
+__pycache__
+*.pyc
+.env
+.vscode
+*.log
+
+# IMPORTANT:
+# Do NOT add *.pt here because the model isn't being copied
+# into the image anyway. It lives on Render's persistent disk.

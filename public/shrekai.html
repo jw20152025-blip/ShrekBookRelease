@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -40,8 +39,16 @@
         }
 
         .shrekai-status {
-            color: #28c840;
+            color: #777;
             font-size: 14px;
+        }
+
+        .shrekai-status.ready {
+            color: #28c840;
+        }
+
+        .shrekai-status.error {
+            color: #d33;
         }
 
         .shrekai-chat {
@@ -97,16 +104,23 @@
             margin: 0;
             min-height: 50px;
             max-height: 150px;
+            resize: vertical;
         }
 
         .shrekai-send {
             align-self: flex-end;
         }
 
+        .shrekai-send:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
         .shrekai-controls {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 15px;
             padding: 10px 15px;
             border-top: 1px solid #ddd;
         }
@@ -121,6 +135,10 @@
             font-style: italic;
         }
 
+        .shrekai-error {
+            color: #c00;
+        }
+
         @media (max-width: 700px) {
             .shrekai-input-area {
                 flex-direction: column;
@@ -132,6 +150,11 @@
 
             .shrekai-bubble {
                 max-width: 90%;
+            }
+
+            .shrekai-controls {
+                flex-direction: column;
+                align-items: stretch;
             }
         }
 
@@ -196,7 +219,6 @@
             <a href="/shrekchat.html">ShrekChat</a>
             <a href="/shrekai.html">ShrekAI</a>
         </nav>
-
     </div>
 </header>
 
@@ -204,15 +226,20 @@
 <main class="shrekai-page">
 
     <div class="shrekai-header">
+
         <h1>🤖 ShrekAI</h1>
 
-        <div class="shrekai-status">
-            ● ShrekAI
+        <div
+            id="shrekai-status"
+            class="shrekai-status"
+        >
+            ● Loading ShrekAI...
         </div>
 
         <p>
-            Your local ShrekBook AI assistant.
+            Your ShrekBook AI assistant.
         </p>
+
     </div>
 
 
@@ -230,11 +257,13 @@
                 id="shrekai-input"
                 placeholder="Talk to ShrekAI..."
                 maxlength="4000"
+                disabled
             ></textarea>
 
             <button
                 id="shrekai-send"
                 class="shrekai-send"
+                disabled
             >
                 Send
             </button>
@@ -263,6 +292,14 @@
 
 
 <script src="/themes.js"></script>
+
+<!-- ONNX Runtime MUST load before ShrekAIWeb -->
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+
+<!-- Real ShrekAI browser runtime -->
+<script src="/ShrekAI/web_model/shrekai_web.js"></script>
+
+<!-- ShrekAI page controller -->
 <script src="/shrekai.js"></script>
 
 </body>

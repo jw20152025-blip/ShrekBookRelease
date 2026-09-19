@@ -12999,75 +12999,792 @@ app.post(
     }
 );
 
+// ============================================================
+// SHREKAI API
+// Browser = model inference
+// Server = authentication + Supabase persistence
+// ============================================================
 
 
+// ------------------------------------------------------------
+// AUTH HELPER
+// ------------------------------------------------------------
 
-app.post("/api/shrekai", async (req, res) => {
+async function getShrekAIUser(req) {
     try {
-        const messages = req.body?.messages;
+        // ----------------------------------------------------
+        // OPTION 1:
+        // Existing ShrekBook Express session
+        // ----------------------------------------------------
 
-        if (!Array.isArray(messages)) {
-            return res.status(400).json({
-                error: "messages must be an array"
-            });
+        if (req.session?.user?.id) {
+            return {
+                id: req.session.user.id
+            };
         }
 
-        const response = await fetch(
-            "http://127.0.0.1:8765/chat",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    messages
-                })
-            }
-        );
+        // ----------------------------------------------------
+        // OPTION 2:
+        // Supabase access token
+        // ----------------------------------------------------
 
-        const data = await response.json();
-
-        if (!response.ok) {
-            console.error(
-                "[ShrekAI] Python API error:",
-                data
-            );
-
-            return res.status(502).json({
-                error: "ShrekAI model error",
-                details: data.error || "Unknown error"
-            });
-        }
+        const authHeader = req.headers.authorization || "";
 
         if (
-            !data ||
-            typeof data.response !== "string"
+            authHeader.startsWith("Bearer ") &&
+            typeof supabase !== "undefined"
         ) {
-            return res.status(502).json({
-                error: "Invalid response from ShrekAI"
-            });
+            const token = authHeader.slice(7).trim();
+
+            if (!token) {
+                return null;
+            }
+
+            const {
+                data,
+                error
+            } = await supabase.auth.getUser(token);
+
+            if (error || !data?.user) {
+                return null;
+            }
+
+            return data.user;
         }
 
-        return res.json({
-            response: data.response
-        });
+        return null;
 
     } catch (error) {
         console.error(
-            "[ShrekAI] Connection failed:",
+            "[ShrekAI] Authentication error:",
             error
         );
 
-        return res.status(503).json({
-            error: "ShrekAI process is not running"
+        return null;
+    }
+}
+
+
+// ------------------------------------------------------------
+// AUTH MIDDLEWARE
+// ------------------------------------------------------------
+
+async function requireShrekAIUser(req, res, next) {
+    const user = await getShrekAIUser(req);
+
+    if (!user) {
+        return res.status(401).json({
+            error: "You must be logged in to use ShrekAI."
         });
     }
-});
+
+    req.shrekAIUser = user;
+
+    next();
+}
 
 
-
-// UPDATE HOUSE
 // ============================================================
+// POST /api/shrekai
+//
+// Saves a user/assistant conversation.
+// The browser generates the answer locally.
+// ============================================================
+
+app.post(
+    "/api/shrekai",
+    requireShrekAIUser,
+    async (req, res) => {
+
+        try {
+            const userId = req.shrekAIUser.id;
+
+            const {
+                conversationId,
+                messages,
+                title
+            } = req.body || {};
+
+            if (!Array.isArray(messages)) {
+                return res.status(400).json({
+                    error: "messages must be an array"
+                });
+            }
+
+            if (messages.length === 0) {
+                return res.status(400).json({
+                    error: "messages cannot be empty"
+                });
+            }
+
+            if (messages.length > 100) {
+                return res.status(400).json({
+                    error: "Too many messages"
+                });
+            }
+
+
+            // ------------------------------------------------
+            // Validate messages
+            // ------------------------------------------------
+
+            const cleanMessages = messages
+                .filter(message =>
+                    message &&
+                    typeof message.role === "string" &&
+                    typeof message.content === "string"
+                )
+                .map(message => ({
+                    role: message.role,
+                    content: message.content.slice(0, 10000)
+                }))
+                .filter(message =>
+                    [
+                        "system",
+                        "user",
+                        "assistant",
+                        "tool"
+                    ].includes(message.role)
+                );
+
+            if (cleanMessages.length === 0) {
+                return res.status(400).json({
+                    error: "No valid messages supplied"
+                });
+            }
+
+
+            // ------------------------------------------------
+            // Find or create conversation
+            // ------------------------------------------------
+
+            let currentConversationId = conversationId;
+
+            if (currentConversationId) {
+
+                const {
+                    data: existingConversation,
+                    error: conversationError
+                } = await supabase
+                    .from("ai_conversations")
+                    .select("id")
+                    .eq("id", currentConversationId)
+                    .eq("user_id", userId)
+                    .maybeSingle();
+
+                if (conversationError) {
+                    console.error(
+                        "[ShrekAI] Conversation lookup failed:",
+                        conversationError
+                    );
+
+                    return res.status(500).json({
+                        error: "Failed to load conversation"
+                    });
+                }
+
+                if (!existingConversation) {
+                    return res.status(404).json({
+                        error: "Conversation not found"
+                    });
+                }
+
+            } else {
+
+                const firstUserMessage =
+                    cleanMessages.find(
+                        message => message.role === "user"
+                    );
+
+                let conversationTitle =
+                    typeof title === "string" && title.trim()
+                        ? title.trim()
+                        : "New conversation";
+
+                if (
+                    conversationTitle === "New conversation" &&
+                    firstUserMessage
+                ) {
+                    conversationTitle =
+                        firstUserMessage.content
+                            .replace(/\s+/g, " ")
+                            .trim()
+                            .slice(0, 80);
+
+                    if (!conversationTitle) {
+                        conversationTitle = "New conversation";
+                    }
+                }
+
+                const {
+                    data: newConversation,
+                    error: createConversationError
+                } = await supabase
+                    .from("ai_conversations")
+                    .insert({
+                        user_id: userId,
+                        title: conversationTitle
+                    })
+                    .select("id, title, created_at, updated_at")
+                    .single();
+
+                if (createConversationError) {
+                    console.error(
+                        "[ShrekAI] Failed to create conversation:",
+                        createConversationError
+                    );
+
+                    return res.status(500).json({
+                        error: "Failed to create conversation"
+                    });
+                }
+
+                currentConversationId =
+                    newConversation.id;
+            }
+
+
+            // ------------------------------------------------
+            // Get existing messages
+            //
+            // This prevents the same messages from being
+            // inserted repeatedly on every browser save.
+            // ------------------------------------------------
+
+            const {
+                data: existingMessages,
+                error: existingMessagesError
+            } = await supabase
+                .from("ai_messages")
+                .select("role, content")
+                .eq(
+                    "conversation_id",
+                    currentConversationId
+                )
+                .eq("user_id", userId)
+                .order("created_at", {
+                    ascending: true
+                });
+
+            if (existingMessagesError) {
+                console.error(
+                    "[ShrekAI] Failed to load existing messages:",
+                    existingMessagesError
+                );
+
+                return res.status(500).json({
+                    error: "Failed to load conversation messages"
+                });
+            }
+
+
+            // ------------------------------------------------
+            // Only insert messages that don't already exist
+            // in the same position/content sequence.
+            // ------------------------------------------------
+
+            const existing = existingMessages || [];
+
+            const newMessages = [];
+
+            for (let i = existing.length; i < cleanMessages.length; i++) {
+                newMessages.push({
+                    conversation_id:
+                        currentConversationId,
+
+                    user_id:
+                        userId,
+
+                    role:
+                        cleanMessages[i].role,
+
+                    content:
+                        cleanMessages[i].content
+                });
+            }
+
+
+            // ------------------------------------------------
+            // Insert new messages
+            // ------------------------------------------------
+
+            if (newMessages.length > 0) {
+
+                const {
+                    error: insertMessagesError
+                } = await supabase
+                    .from("ai_messages")
+                    .insert(newMessages);
+
+                if (insertMessagesError) {
+                    console.error(
+                        "[ShrekAI] Failed to save messages:",
+                        insertMessagesError
+                    );
+
+                    return res.status(500).json({
+                        error: "Failed to save messages"
+                    });
+                }
+            }
+
+
+            // ------------------------------------------------
+            // Update conversation timestamp
+            // ------------------------------------------------
+
+            await supabase
+                .from("ai_conversations")
+                .update({
+                    updated_at: new Date().toISOString()
+                })
+                .eq(
+                    "id",
+                    currentConversationId
+                )
+                .eq(
+                    "user_id",
+                    userId
+                );
+
+
+            console.log(
+                "[ShrekAI] Conversation saved:",
+                currentConversationId
+            );
+
+
+            return res.json({
+                success: true,
+                conversationId:
+                    currentConversationId
+            });
+
+        } catch (error) {
+
+            console.error(
+                "[ShrekAI] API error:",
+                error
+            );
+
+            return res.status(500).json({
+                error: "ShrekAI API failed"
+            });
+        }
+    }
+);
+
+
+// ============================================================
+// GET /api/shrekai/history
+//
+// Returns the user's conversations.
+// ============================================================
+
+app.get(
+    "/api/shrekai/history",
+    requireShrekAIUser,
+    async (req, res) => {
+
+        try {
+
+            const userId = req.shrekAIUser.id;
+
+            const {
+                data,
+                error
+            } = await supabase
+                .from("ai_conversations")
+                .select(
+                    "id, title, created_at, updated_at"
+                )
+                .eq("user_id", userId)
+                .order("updated_at", {
+                    ascending: false
+                })
+                .limit(100);
+
+            if (error) {
+                console.error(
+                    "[ShrekAI] History lookup failed:",
+                    error
+                );
+
+                return res.status(500).json({
+                    error: "Failed to load conversation history"
+                });
+            }
+
+            return res.json({
+                conversations: data || []
+            });
+
+        } catch (error) {
+
+            console.error(
+                "[ShrekAI] History error:",
+                error
+            );
+
+            return res.status(500).json({
+                error: "Failed to load history"
+            });
+        }
+    }
+);
+
+
+// ============================================================
+// GET /api/shrekai/history/:conversationId
+//
+// Loads one complete conversation.
+// ============================================================
+
+app.get(
+    "/api/shrekai/history/:conversationId",
+    requireShrekAIUser,
+    async (req, res) => {
+
+        try {
+
+            const userId = req.shrekAIUser.id;
+
+            const conversationId =
+                req.params.conversationId;
+
+
+            const {
+                data: conversation,
+                error: conversationError
+            } = await supabase
+                .from("ai_conversations")
+                .select(
+                    "id, title, created_at, updated_at"
+                )
+                .eq("id", conversationId)
+                .eq("user_id", userId)
+                .maybeSingle();
+
+
+            if (conversationError) {
+                console.error(
+                    "[ShrekAI] Conversation lookup failed:",
+                    conversationError
+                );
+
+                return res.status(500).json({
+                    error: "Failed to load conversation"
+                });
+            }
+
+
+            if (!conversation) {
+                return res.status(404).json({
+                    error: "Conversation not found"
+                });
+            }
+
+
+            const {
+                data: messages,
+                error: messagesError
+            } = await supabase
+                .from("ai_messages")
+                .select(
+                    "id, role, content, created_at"
+                )
+                .eq(
+                    "conversation_id",
+                    conversationId
+                )
+                .eq("user_id", userId)
+                .order("created_at", {
+                    ascending: true
+                });
+
+
+            if (messagesError) {
+                console.error(
+                    "[ShrekAI] Message lookup failed:",
+                    messagesError
+                );
+
+                return res.status(500).json({
+                    error: "Failed to load messages"
+                });
+            }
+
+
+            return res.json({
+                conversation,
+                messages: messages || []
+            });
+
+        } catch (error) {
+
+            console.error(
+                "[ShrekAI] Conversation history error:",
+                error
+            );
+
+            return res.status(500).json({
+                error: "Failed to load conversation"
+            });
+        }
+    }
+);
+
+
+// ============================================================
+// DELETE /api/shrekai/history/:conversationId
+// ============================================================
+
+app.delete(
+    "/api/shrekai/history/:conversationId",
+    requireShrekAIUser,
+    async (req, res) => {
+
+        try {
+
+            const userId = req.shrekAIUser.id;
+
+            const conversationId =
+                req.params.conversationId;
+
+
+            const {
+                error
+            } = await supabase
+                .from("ai_conversations")
+                .delete()
+                .eq("id", conversationId)
+                .eq("user_id", userId);
+
+
+            if (error) {
+                console.error(
+                    "[ShrekAI] Conversation deletion failed:",
+                    error
+                );
+
+                return res.status(500).json({
+                    error: "Failed to delete conversation"
+                });
+            }
+
+
+            return res.json({
+                success: true
+            });
+
+        } catch (error) {
+
+            console.error(
+                "[ShrekAI] Delete error:",
+                error
+            );
+
+            return res.status(500).json({
+                error: "Failed to delete conversation"
+            });
+        }
+    }
+);
+
+
+// ============================================================
+// GET /api/shrekai/memories
+// ============================================================
+
+app.get(
+    "/api/shrekai/memories",
+    requireShrekAIUser,
+    async (req, res) => {
+
+        try {
+
+            const userId = req.shrekAIUser.id;
+
+            const {
+                data,
+                error
+            } = await supabase
+                .from("ai_memories")
+                .select(
+                    "id, memory, created_at, updated_at"
+                )
+                .eq("user_id", userId)
+                .order("updated_at", {
+                    ascending: false
+                })
+                .limit(100);
+
+
+            if (error) {
+                console.error(
+                    "[ShrekAI] Memory lookup failed:",
+                    error
+                );
+
+                return res.status(500).json({
+                    error: "Failed to load memories"
+                });
+            }
+
+
+            return res.json({
+                memories: data || []
+            });
+
+        } catch (error) {
+
+            console.error(
+                "[ShrekAI] Memory error:",
+                error
+            );
+
+            return res.status(500).json({
+                error: "Failed to load memories"
+            });
+        }
+    }
+);
+
+
+// ============================================================
+// POST /api/shrekai/memories
+// ============================================================
+
+app.post(
+    "/api/shrekai/memories",
+    requireShrekAIUser,
+    async (req, res) => {
+
+        try {
+
+            const userId = req.shrekAIUser.id;
+
+            const memory =
+                typeof req.body?.memory === "string"
+                    ? req.body.memory.trim()
+                    : "";
+
+
+            if (!memory) {
+                return res.status(400).json({
+                    error: "memory is required"
+                });
+            }
+
+
+            if (memory.length > 2000) {
+                return res.status(400).json({
+                    error: "Memory is too long"
+                });
+            }
+
+
+            const {
+                data,
+                error
+            } = await supabase
+                .from("ai_memories")
+                .insert({
+                    user_id: userId,
+                    memory
+                })
+                .select(
+                    "id, memory, created_at, updated_at"
+                )
+                .single();
+
+
+            if (error) {
+                console.error(
+                    "[ShrekAI] Memory creation failed:",
+                    error
+                );
+
+                return res.status(500).json({
+                    error: "Failed to save memory"
+                });
+            }
+
+
+            return res.json({
+                success: true,
+                memory: data
+            });
+
+        } catch (error) {
+
+            console.error(
+                "[ShrekAI] Memory creation error:",
+                error
+            );
+
+            return res.status(500).json({
+                error: "Failed to save memory"
+            });
+        }
+    }
+);
+
+
+// ============================================================
+// DELETE /api/shrekai/memories/:id
+// ============================================================
+
+app.delete(
+    "/api/shrekai/memories/:id",
+    requireShrekAIUser,
+    async (req, res) => {
+
+        try {
+
+            const userId = req.shrekAIUser.id;
+
+            const memoryId = req.params.id;
+
+
+            const {
+                error
+            } = await supabase
+                .from("ai_memories")
+                .delete()
+                .eq("id", memoryId)
+                .eq("user_id", userId);
+
+
+            if (error) {
+                console.error(
+                    "[ShrekAI] Memory deletion failed:",
+                    error
+                );
+
+                return res.status(500).json({
+                    error: "Failed to delete memory"
+                });
+            }
+
+
+            return res.json({
+                success: true
+            });
+
+        } catch (error) {
+
+            console.error(
+                "[ShrekAI] Memory deletion error:",
+                error
+            );
+
+            return res.status(500).json({
+                error: "Failed to delete memory"
+            });
+        }
+    }
+);
 
 app.put("/api/houses/:id", async (req, res) => {
     const userId =
@@ -13537,7 +14254,8 @@ app.delete(
 
 
 
-app.listen(PORT, () => {
+
+app.listen(PORT, "0.0.0.0", () => {
 
     console.log(
         `🧌 ShrekBook server running on port ${PORT}`
