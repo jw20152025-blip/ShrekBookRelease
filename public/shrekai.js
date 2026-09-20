@@ -846,91 +846,82 @@ Use it only when it is relevant:
                 "loading"
             );
 
-
             console.log(
                 "[ShrekAI] Creating browser model..."
             );
 
+            // Make sure shrekai_web.js loaded first
+            if (typeof window.ShrekAIWeb !== "function") {
+                throw new Error(
+                    "ShrekAIWeb is not available. " +
+                    "shrekai_web.js did not load correctly."
+                );
+            }
+
+            console.log(
+                "[ShrekAI] ShrekAIWeb runtime detected."
+            );
 
             shrekAI =
-                new ShrekAIWeb({
-                    modelUrl:
-                        MODEL_URL,
-
-                    tokenizerUrl:
-                        TOKENIZER_URL
+                new window.ShrekAIWeb({
+                    modelUrl: MODEL_URL,
+                    tokenizerUrl: TOKENIZER_URL
                 });
 
+            console.log(
+                "[ShrekAI] Browser model instance created."
+            );
 
             await shrekAI.load();
 
-
             modelReady = true;
-
 
             setStatus(
                 "● ShrekAI",
                 "online"
             );
 
-
             console.log(
                 "[ShrekAI] Model loaded successfully."
             );
 
-
         } catch (error) {
 
             modelReady = false;
-
 
             setStatus(
                 "● ShrekAI failed to load",
                 "error"
             );
 
-
             console.error(
                 "[ShrekAI] Model loading failed:",
                 error
             );
 
-
             if (messagesElement) {
 
                 const wrapper =
-                    document.createElement(
-                        "div"
-                    );
+                    document.createElement("div");
 
                 wrapper.className =
                     "shrekai-message assistant";
 
-
                 const bubble =
-                    document.createElement(
-                        "div"
-                    );
+                    document.createElement("div");
 
                 bubble.className =
                     "shrekai-message-bubble";
 
-
                 bubble.textContent =
                     "ShrekAI could not load. Check the browser console for the exact error.";
 
+                wrapper.appendChild(bubble);
 
-                wrapper.appendChild(
-                    bubble
-                );
-
-                messagesElement.appendChild(
-                    wrapper
-                );
+                messagesElement.appendChild(wrapper);
             }
         }
     }
-
 
     // ========================================================
     // EVENT HANDLERS
