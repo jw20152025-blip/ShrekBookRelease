@@ -839,65 +839,387 @@ Use it only when it is relevant:
 
     async function loadModel() {
 
+        console.group("[ShrekAI] ===== MODEL LOAD DEBUG =====");
+
         try {
+
+            // ====================================================
+            // STEP 1 — BASIC ENVIRONMENT
+            // ====================================================
+
+            console.log("[ShrekAI][1] Starting model load...");
+
+            console.log(
+                "[ShrekAI][1] Current URL:",
+                window.location.href
+            );
+
+            console.log(
+                "[ShrekAI][1] User agent:",
+                navigator.userAgent
+            );
+
+            console.log(
+                "[ShrekAI][1] WebGPU available:",
+                "gpu" in navigator
+            );
+
+            console.log(
+                "[ShrekAI][1] ONNX Runtime available:",
+                typeof window.ort
+            );
+
 
             setStatus(
                 "● Loading ShrekAI...",
                 "loading"
             );
 
+
+            // ====================================================
+            // STEP 2 — CHECK RUNTIME
+            // ====================================================
+
             console.log(
-                "[ShrekAI] Creating browser model..."
+                "[ShrekAI][2] Checking window.ShrekAIWeb..."
             );
 
-            // Make sure shrekai_web.js loaded first
-            if (typeof window.ShrekAIWeb !== "function") {
+            console.log(
+                "[ShrekAI][2] window.ShrekAIWeb:",
+                window.ShrekAIWeb
+            );
+
+            console.log(
+                "[ShrekAI][2] typeof window.ShrekAIWeb:",
+                typeof window.ShrekAIWeb
+            );
+
+
+            if (
+                typeof window.ShrekAIWeb !== "function"
+            ) {
+
+                console.error(
+                    "[ShrekAI][2] ❌ ShrekAIWeb DOES NOT EXIST."
+                );
+
+                console.error(
+                    "[ShrekAI][2] This means shrekai_web.js either:"
+                );
+
+                console.error(
+                    "[ShrekAI][2] - did not load"
+                );
+
+                console.error(
+                    "[ShrekAI][2] - contains a syntax error"
+                );
+
+                console.error(
+                    "[ShrekAI][2] - crashed before exporting the class"
+                );
+
+                console.error(
+                    "[ShrekAI][2] - was loaded from the wrong path"
+                );
+
                 throw new Error(
-                    "ShrekAIWeb is not available. " +
-                    "shrekai_web.js did not load correctly."
+                    "ShrekAIWeb is not available. shrekai_web.js did not load correctly."
                 );
             }
 
+
             console.log(
-                "[ShrekAI] ShrekAIWeb runtime detected."
+                "[ShrekAI][2] ✅ ShrekAIWeb exists."
+            );
+
+
+            // ====================================================
+            // STEP 3 — CHECK MODEL URL
+            // ====================================================
+
+            console.log(
+                "[ShrekAI][3] Checking model URL:",
+                MODEL_URL
+            );
+
+            const modelCheck =
+                await fetch(
+                    MODEL_URL,
+                    {
+                        method: "HEAD",
+                        credentials: "same-origin"
+                    }
+                );
+
+            console.log(
+                "[ShrekAI][3] Model HTTP status:",
+                modelCheck.status
+            );
+
+            console.log(
+                "[ShrekAI][3] Model content type:",
+                modelCheck.headers.get(
+                    "content-type"
+                )
+            );
+
+            console.log(
+                "[ShrekAI][3] Model content length:",
+                modelCheck.headers.get(
+                    "content-length"
+                )
+            );
+
+
+            if (!modelCheck.ok) {
+
+                throw new Error(
+                    `ONNX model could not be reached. HTTP ${modelCheck.status}`
+                );
+            }
+
+
+            console.log(
+                "[ShrekAI][3] ✅ ONNX model reachable."
+            );
+
+
+            // ====================================================
+            // STEP 4 — CHECK TOKENIZER
+            // ====================================================
+
+            console.log(
+                "[ShrekAI][4] Checking tokenizer URL:",
+                TOKENIZER_URL
+            );
+
+            const tokenizerCheck =
+                await fetch(
+                    TOKENIZER_URL,
+                    {
+                        method: "HEAD",
+                        credentials: "same-origin"
+                    }
+                );
+
+            console.log(
+                "[ShrekAI][4] Tokenizer HTTP status:",
+                tokenizerCheck.status
+            );
+
+            console.log(
+                "[ShrekAI][4] Tokenizer content type:",
+                tokenizerCheck.headers.get(
+                    "content-type"
+                )
+            );
+
+            console.log(
+                "[ShrekAI][4] Tokenizer content length:",
+                tokenizerCheck.headers.get(
+                    "content-length"
+                )
+            );
+
+
+            if (!tokenizerCheck.ok) {
+
+                throw new Error(
+                    `Tokenizer could not be reached. HTTP ${tokenizerCheck.status}`
+                );
+            }
+
+
+            console.log(
+                "[ShrekAI][4] ✅ Tokenizer reachable."
+            );
+
+
+            // ====================================================
+            // STEP 5 — CREATE INSTANCE
+            // ====================================================
+
+            console.log(
+                "[ShrekAI][5] Creating ShrekAIWeb instance..."
             );
 
             shrekAI =
                 new window.ShrekAIWeb({
-                    modelUrl: MODEL_URL,
-                    tokenizerUrl: TOKENIZER_URL
+
+                    modelUrl:
+                        MODEL_URL,
+
+                    tokenizerUrl:
+                        TOKENIZER_URL
                 });
 
+
             console.log(
-                "[ShrekAI] Browser model instance created."
+                "[ShrekAI][5] Instance:",
+                shrekAI
             );
+
+            console.log(
+                "[ShrekAI][5] Constructor:",
+                shrekAI?.constructor?.name
+            );
+
+
+            if (!shrekAI) {
+
+                throw new Error(
+                    "ShrekAIWeb constructor returned nothing."
+                );
+            }
+
+
+            console.log(
+                "[ShrekAI][5] ✅ Instance created."
+            );
+
+
+            // ====================================================
+            // STEP 6 — CHECK METHODS
+            // ====================================================
+
+            console.log(
+                "[ShrekAI][6] Checking runtime methods..."
+            );
+
+            console.log(
+                "[ShrekAI][6] load():",
+                typeof shrekAI.load
+            );
+
+            console.log(
+                "[ShrekAI][6] generate():",
+                typeof shrekAI.generate
+            );
+
+            console.log(
+                "[ShrekAI][6] tokenize():",
+                typeof shrekAI.tokenize
+            );
+
+            console.log(
+                "[ShrekAI][6] detokenize():",
+                typeof shrekAI.detokenize
+            );
+
+
+            if (
+                typeof shrekAI.load !== "function"
+            ) {
+
+                throw new Error(
+                    "ShrekAIWeb exists, but load() is missing."
+                );
+            }
+
+
+            if (
+                typeof shrekAI.generate !== "function"
+            ) {
+
+                throw new Error(
+                    "ShrekAIWeb exists, but generate() is missing."
+                );
+            }
+
+
+            console.log(
+                "[ShrekAI][6] ✅ Runtime methods look good."
+            );
+
+
+            // ====================================================
+            // STEP 7 — LOAD MODEL
+            // ====================================================
+
+            console.log(
+                "[ShrekAI][7] Calling shrekAI.load()..."
+            );
+
+            const loadStart =
+                performance.now();
+
 
             await shrekAI.load();
 
+
+            const loadTime =
+                performance.now() -
+                loadStart;
+
+
+            console.log(
+                "[ShrekAI][7] Model load time:",
+                `${Math.round(loadTime)} ms`
+            );
+
+            console.log(
+                "[ShrekAI][7] Runtime after load:",
+                shrekAI
+            );
+
+
+            // ====================================================
+            // STEP 8 — SUCCESS
+            // ====================================================
+
             modelReady = true;
+
 
             setStatus(
                 "● ShrekAI",
                 "online"
             );
 
+
             console.log(
-                "[ShrekAI] Model loaded successfully."
+                "[ShrekAI][8] ✅ MODEL LOADED."
+            );
+
+            console.log(
+                "[ShrekAI] 🎉 ShrekAI is ready!"
             );
 
         } catch (error) {
 
             modelReady = false;
 
+
+            console.error(
+                "[ShrekAI] ❌ MODEL LOAD FAILED"
+            );
+
+            console.error(
+                "[ShrekAI] Error:",
+                error
+            );
+
+            console.error(
+                "[ShrekAI] Error name:",
+                error?.name
+            );
+
+            console.error(
+                "[ShrekAI] Error message:",
+                error?.message
+            );
+
+            console.error(
+                "[ShrekAI] Error stack:",
+                error?.stack
+            );
+
+
             setStatus(
                 "● ShrekAI failed to load",
                 "error"
             );
 
-            console.error(
-                "[ShrekAI] Model loading failed:",
-                error
-            );
 
             if (messagesElement) {
 
@@ -907,22 +1229,33 @@ Use it only when it is relevant:
                 wrapper.className =
                     "shrekai-message assistant";
 
+
                 const bubble =
                     document.createElement("div");
 
                 bubble.className =
                     "shrekai-message-bubble";
 
+
                 bubble.textContent =
                     "ShrekAI could not load. Check the browser console for the exact error.";
 
-                wrapper.appendChild(bubble);
 
-                messagesElement.appendChild(wrapper);
+                wrapper.appendChild(
+                    bubble
+                );
+
+                messagesElement.appendChild(
+                    wrapper
+                );
             }
+
+        } finally {
+
+            console.groupEnd();
+
         }
     }
-
     // ========================================================
     // EVENT HANDLERS
     // ========================================================
