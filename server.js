@@ -9,15 +9,15 @@ const upload = multer({
         fileSize: 50 * 1024 * 1024
     }
 });
-// ==================================================
-// GLOBAL / SPECIFIC MESSAGES
-// ==================================================
+
+
+
 
 let globalMessage = null;
 
 const specificMessages = new Map();
 
-// Tracks when each logged-in session started
+
 const messageSessionTimes = new Map();
 const express = require("express");
 const path = require("path");
@@ -41,9 +41,9 @@ const PORT =
     process.env.PORT || 3000;
 
 
-// ==================================================
-// ENVIRONMENT VARIABLES
-// ==================================================
+
+
+
 
 const SUPABASE_URL =
     process.env.SUPABASE_URL;
@@ -55,9 +55,9 @@ const SESSION_SECRET =
     process.env.SESSION_SECRET;
 
 
-// ==================================================
-// CHECK ENVIRONMENT
-// ==================================================
+
+
+
 
 if (
     !SUPABASE_URL ||
@@ -83,15 +83,13 @@ if (!SESSION_SECRET) {
 
 }
 
-/* ============================================================
-   MODERATION WEBSOCKET SERVER
-============================================================ */
 
 
 
-// ==================================================
-// SUPABASE
-// ==================================================
+
+
+
+
 
 const supabase =
     createClient(
@@ -100,17 +98,17 @@ const supabase =
     );
 
 
-// ==================================================
-// SESSION STORE
-// ==================================================
+
+
+
 
 const sessionStore =
     new session.MemoryStore();
 
 
-// ==================================================
-// EXPRESS SESSION
-// ==================================================
+
+
+
 
 app.use(
     session({
@@ -163,9 +161,9 @@ async function awardShrekCoins(
         }
 
 
-        // ------------------------------------------
-        // GET CURRENT BALANCE
-        // ------------------------------------------
+
+
+
 
         const {
             data: profile,
@@ -203,9 +201,9 @@ async function awardShrekCoins(
             );
 
 
-        // ------------------------------------------
-        // UPDATE BALANCE
-        // ------------------------------------------
+
+
+
 
         const {
             error: updateError
@@ -233,9 +231,9 @@ async function awardShrekCoins(
         }
 
 
-        // ------------------------------------------
-        // RECORD TRANSACTION
-        // ------------------------------------------
+
+
+
 
         const {
             error: transactionError
@@ -347,7 +345,7 @@ app.get("/api/shreksearch", async (req, res) => {
         res.json({
             query: query,
 
-            // THIS is the AI-style answer
+
             answer: data.answer || "No AI answer was generated.",
 
             results: results
@@ -363,16 +361,14 @@ app.get("/api/shreksearch", async (req, res) => {
         });
     }
 });
-// ==================================================
-// INSTANT MODERATION WEBSOCKET
-// ==================================================
+
+
+
 
 const server =
     http.createServer(app);
 
-/* ==================================================
-   ONLINE STATUS
-================================================== */
+
 app.get("/api/moderation/status", async (req, res) => {
 
     try {
@@ -462,8 +458,8 @@ app.get("/api/online", async (req, res) => {
 
         const now = Date.now();
 
-        // User is considered online if
-        // their heartbeat was within the last 30 seconds.
+
+
         const onlineUsers = (users || [])
             .map(user => {
 
@@ -506,18 +502,18 @@ app.get("/api/online", async (req, res) => {
     }
 
 });
-// ==================================================
-// DEFAULT AVATAR
-// ==================================================
+
+
+
 
 const DEFAULT_AVATAR =
     "/default-avatar.png";
 
 
 
-// ==================================================
-// EXPRESS
-// ==================================================
+
+
+
 
 app.set("trust proxy", 1);
 
@@ -545,9 +541,9 @@ app.get("/sitemap.xml", (req, res) => {
         path.join(__dirname, "public", "sitemap.xml")
     );
 });
-// ==================================================
-// HELPERS
-// ==================================================
+
+
+
 
 function getAvatar(avatar) {
     if (
@@ -566,9 +562,9 @@ function normalizeEmail(email) {
         .toLowerCase();
 }
 
-// ==================================================
-// ADMIN / BAN HELPERS
-// ==================================================
+
+
+
 
 async function isAdmin(userId) {
     if (!userId) {
@@ -698,7 +694,7 @@ async function requireAdmin(req, res, next) {
 
         const userId = req.session.user.id;
 
-        // 👑 OWNER ALWAYS HAS STAFF ACCESS
+
         if (
             process.env.OWNER_ID &&
             userId === process.env.OWNER_ID
@@ -706,7 +702,7 @@ async function requireAdmin(req, res, next) {
             return next();
         }
 
-        // Check administrator table
+
         const { data: admin, error: adminError } = await supabase
             .from("admins")
             .select("user_id")
@@ -721,7 +717,7 @@ async function requireAdmin(req, res, next) {
             return next();
         }
 
-        // Check staff/moderator table
+
         const { data: staff, error: staffError } = await supabase
             .from("staff")
             .select("user_id, role")
@@ -752,9 +748,9 @@ app.post("/api/admin/ban", async (req, res) => {
 
     try {
 
-        // ==========================================
-        // CHECK LOGIN
-        // ==========================================
+
+
+
 
         if (!req.session.user) {
             return res.status(401).json({
@@ -763,9 +759,9 @@ app.post("/api/admin/ban", async (req, res) => {
         }
 
 
-        // ==========================================
-        // CHECK PERMISSION
-        // ==========================================
+
+
+
 
         const { data: user, error: userError } =
             await supabase
@@ -805,9 +801,9 @@ app.post("/api/admin/ban", async (req, res) => {
         }
 
 
-        // ==========================================
-        // GET TARGET USER
-        // ==========================================
+
+
+
 
         const { userId, reason } = req.body;
 
@@ -821,9 +817,9 @@ app.post("/api/admin/ban", async (req, res) => {
         }
 
 
-        // ==========================================
-        // BAN PROFILE
-        // ==========================================
+
+
+
 
         const { error } =
             await supabase
@@ -849,16 +845,16 @@ app.post("/api/admin/ban", async (req, res) => {
         }
 
 
-        // ==========================================
-        // LIVE BAN
-        // ==========================================
+
+
+
 
         liveBanUser(userId);
 
 
-        // ==========================================
-        // SUCCESS
-        // ==========================================
+
+
+
 
         return res.json({
 
@@ -885,9 +881,9 @@ app.post("/api/admin/ban", async (req, res) => {
     }
 
 });
-// ==================================================
-// ADMIN AUTH
-// ==================================================
+
+
+
 app.post("/api/admin/kick", async (req, res) => {
     const { userId } = req.body;
 
@@ -906,7 +902,7 @@ app.post("/api/admin/kick", async (req, res) => {
         });
     }
 
-    // 🔥 Tell the user's browser immediately
+
     liveKickUser(userId);
     setTimeout(() => {
         clearKick(userId);
@@ -972,14 +968,14 @@ app.get("/api/admin/auth", requireLogin, async (req, res) => {
 
     }
 });
-// ==================================================
-// BAN CHECK FOR API REQUESTS
-// ==================================================
-//
-// This makes sure a banned user cannot simply remain
-// logged in and continue using the API.
-//
-// Login/signup/me/health are handled separately.
+
+
+
+
+
+
+
+
 
 app.use("/api", async (req, res, next) => {
 
@@ -1031,9 +1027,9 @@ app.use("/api", async (req, res, next) => {
     }
 });
 
-// ==================================================
-// REACTION COUNTS
-// ==================================================
+
+
+
 
 async function getReactionCounts(userId) {
 
@@ -1072,9 +1068,9 @@ async function getReactionCounts(userId) {
 
     return counts;
 }
-// ==================================================
-// CHANGE USER ROLE
-// ==================================================
+
+
+
 
 app.post(
     "/api/admin/users/:userId/role",
@@ -1125,9 +1121,9 @@ app.post(
                 req.session.user.id;
 
 
-            // ==========================================
-            // OWNER PROTECTION
-            // ==========================================
+
+
+
 
             if (
                 targetUserId === currentUserId
@@ -1141,9 +1137,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // GET TARGET PROFILE
-            // ==========================================
+
+
+
 
             const {
                 data: target,
@@ -1180,9 +1176,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // OWNER CANNOT BE TOUCHED
-            // ==========================================
+
+
+
 
             if (
                 target.role === "owner"
@@ -1196,9 +1192,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // ONLY OWNER CAN CREATE/REMOVE ADMINS
-            // ==========================================
+
+
+
 
             const currentProfile =
                 await supabase
@@ -1240,9 +1236,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // UPDATE ROLE
-            // ==========================================
+
+
+
 
             const {
                 data: updated,
@@ -1277,9 +1273,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // KEEP ADMINS TABLE IN SYNC
-            // ==========================================
+
+
+
 
             if (
                 newRole === "administrator"
@@ -1341,9 +1337,9 @@ app.post(
 
     }
 );
-// ==================================================
-// TEST
-// ==================================================
+
+
+
 
 app.get("/api/test", (req, res) => {
 
@@ -1363,9 +1359,9 @@ app.get("/api/health", (req, res) => {
 
 });
 
-// ==================================================
-// SIGNUP
-// ==================================================
+
+
+
 
 app.post("/api/signup", async (req, res) => {
 
@@ -1403,7 +1399,7 @@ app.post("/api/signup", async (req, res) => {
             });
         }
 
-        // Check banned email BEFORE creating account
+
         const emailBan =
             await getActiveBanByEmail(
                 email
@@ -1525,9 +1521,9 @@ function requireLogin(req, res, next) {
     next();
 }
 
-// ==================================================
-// LOGIN
-// ==================================================
+
+
+
 
 app.post("/api/login", async (req, res) => {
 
@@ -1544,9 +1540,9 @@ app.post("/api/login", async (req, res) => {
             );
 
 
-        // ==========================================
-        // CHECK INPUT
-        // ==========================================
+
+
+
 
         if (!email || !password) {
 
@@ -1558,9 +1554,9 @@ app.post("/api/login", async (req, res) => {
         }
 
 
-        // ==========================================
-        // CHECK EMAIL BAN
-        // ==========================================
+
+
+
 
         const emailBan =
             await getActiveBanByEmail(
@@ -1584,9 +1580,9 @@ app.post("/api/login", async (req, res) => {
         }
 
 
-        // ==========================================
-        // SUPABASE AUTH LOGIN
-        // ==========================================
+
+
+
 
         const {
             data: authData,
@@ -1628,9 +1624,9 @@ app.post("/api/login", async (req, res) => {
         }
 
 
-        // ==========================================
-        // CHECK USER-ID BAN
-        // ==========================================
+
+
+
 
         const userBan =
             await getActiveBanByUserId(
@@ -1654,9 +1650,9 @@ app.post("/api/login", async (req, res) => {
         }
 
 
-        // ==========================================
-        // LOAD PROFILE
-        // ==========================================
+
+
+
 
         let {
             data: profile,
@@ -1689,9 +1685,9 @@ app.post("/api/login", async (req, res) => {
         }
 
 
-        // ==========================================
-        // CREATE MISSING PROFILE
-        // ==========================================
+
+
+
 
         if (!profile) {
 
@@ -1725,7 +1721,7 @@ app.post("/api/login", async (req, res) => {
                 1;
 
 
-            // Find unused username
+
 
             while (true) {
 
@@ -1758,9 +1754,9 @@ app.post("/api/login", async (req, res) => {
             }
 
 
-            // ======================================
-            // CREATE PROFILE
-            // ======================================
+
+
+
 
             const {
                 data: created,
@@ -1794,9 +1790,9 @@ app.post("/api/login", async (req, res) => {
                         banned:
                             false,
 
-                        // ==========================
-                        // SHREKCOINS
-                        // ==========================
+
+
+
 
                         shrekcoins:
                             10,
@@ -1839,9 +1835,9 @@ app.post("/api/login", async (req, res) => {
         }
 
 
-        // ==========================================
-        // CHECK PROFILE BAN
-        // ==========================================
+
+
+
 
         if (profile.banned === true) {
 
@@ -1855,9 +1851,9 @@ app.post("/api/login", async (req, res) => {
         }
 
 
-        // ==========================================
-        // CHECK PROFILE ACTIVE STATUS
-        // ==========================================
+
+
+
 
         if (profile.is_active === false) {
 
@@ -1871,11 +1867,11 @@ app.post("/api/login", async (req, res) => {
         }
 
 
-        // ==========================================
-        // DAILY LOGIN SHREKCOIN
-        //
-        // First login of each day = +10
-        // ==========================================
+
+
+
+
+
 
         const today =
             new Date()
@@ -1932,8 +1928,8 @@ app.post("/api/login", async (req, res) => {
                     coinError
                 );
 
-                // Don't prevent login if the
-                // coin system happens to fail.
+
+
                 loginCoinsAwarded = 0;
 
             } else {
@@ -1954,9 +1950,9 @@ app.post("/api/login", async (req, res) => {
         }
 
 
-        // ==========================================
-        // CREATE LOGIN SESSION
-        // ==========================================
+
+
+
 
         req.session.user = {
 
@@ -1975,9 +1971,9 @@ app.post("/api/login", async (req, res) => {
         };
 
 
-        // ==========================================
-        // SAVE SESSION
-        // ==========================================
+
+
+
 
         req.session.save(
             error => {
@@ -1999,9 +1995,9 @@ app.post("/api/login", async (req, res) => {
                 }
 
 
-                // ==================================
-                // LOGIN SUCCESS
-                // ==================================
+
+
+
 
                 res.json({
 
@@ -2096,7 +2092,7 @@ app.post("/api/admin/global-message", async (req, res) => {
         }
 
 
-        // OWNER ONLY
+
         if (
             profile.role !== "owner"
         ) {
@@ -2173,9 +2169,9 @@ app.post("/api/admin/global-message", async (req, res) => {
     }
 
 });
-// ==================================================
-// MARK GLOBAL MESSAGE AS READ
-// ==================================================
+
+
+
 
 app.post("/api/global-message/read", async (req, res) => {
 
@@ -2233,10 +2229,10 @@ app.post("/api/global-message/read", async (req, res) => {
     }
 
 });
-// ==================================================
-// SEND SPECIFIC MESSAGE
-// ADMIN + OWNER ONLY
-// ==================================================
+
+
+
+
 
 app.post(
     "/api/admin/specific-message",
@@ -2244,9 +2240,9 @@ app.post(
 
         try {
 
-            // ------------------------------------------
-            // CHECK LOGIN
-            // ------------------------------------------
+
+
+
 
             if (
                 !req.session ||
@@ -2265,9 +2261,9 @@ app.post(
                 req.session.user.id;
 
 
-            // ------------------------------------------
-            // GET SENDER PROFILE
-            // ------------------------------------------
+
+
+
 
             const {
                 data: sender,
@@ -2300,9 +2296,9 @@ app.post(
             }
 
 
-            // ------------------------------------------
-            // CHECK PERMISSIONS
-            // ------------------------------------------
+
+
+
 
             if (
                 sender.role !== "administrator" &&
@@ -2317,9 +2313,9 @@ app.post(
             }
 
 
-            // ------------------------------------------
-            // GET REQUEST DATA
-            // ------------------------------------------
+
+
+
 
             const {
                 userId,
@@ -2327,9 +2323,9 @@ app.post(
             } = req.body || {};
 
 
-            // ------------------------------------------
-            // VALIDATE USER ID
-            // ------------------------------------------
+
+
+
 
             if (
                 typeof userId !== "string" ||
@@ -2348,9 +2344,9 @@ app.post(
                 userId.trim();
 
 
-            // ------------------------------------------
-            // PREVENT SELF MESSAGE
-            // ------------------------------------------
+
+
+
 
             if (
                 targetUserId === senderId
@@ -2364,9 +2360,9 @@ app.post(
             }
 
 
-            // ------------------------------------------
-            // VALIDATE MESSAGE
-            // ------------------------------------------
+
+
+
 
             if (
                 typeof message !== "string"
@@ -2408,9 +2404,9 @@ app.post(
             }
 
 
-            // ------------------------------------------
-            // CHECK TARGET USER EXISTS
-            // ------------------------------------------
+
+
+
 
             const {
                 data: targetUser,
@@ -2440,9 +2436,9 @@ app.post(
             }
 
 
-            // ------------------------------------------
-            // CHECK EXISTING MESSAGE
-            // ------------------------------------------
+
+
+
 
             const existingMessage =
                 specificMessages.get(
@@ -2462,9 +2458,9 @@ app.post(
             }
 
 
-            // ------------------------------------------
-            // CREATE MESSAGE
-            // ------------------------------------------
+
+
+
 
             const now =
                 Date.now();
@@ -2497,9 +2493,9 @@ app.post(
             };
 
 
-            // ------------------------------------------
-            // STORE MESSAGE
-            // ------------------------------------------
+
+
+
 
             specificMessages.set(
                 targetUserId,
@@ -2507,9 +2503,9 @@ app.post(
             );
 
 
-            // ------------------------------------------
-            // RESPONSE
-            // ------------------------------------------
+
+
+
 
             console.log(
                 `📨 Specific message sent by ${sender.username} to ${targetUser.username}`
@@ -2560,11 +2556,9 @@ app.post(
 
 
 
-/* ==================================================
-   BAN / KICK MONITOR
-================================================== */
 
-let moderationCheckRunning = false;
+
+
 
 app.get("/api/me", async (req, res) => {
 
@@ -2579,9 +2573,9 @@ try {
     }
 
 
-    // ==========================================
-    // MESSAGE SESSION START
-    // ==========================================
+
+
+
 
     if (!req.session.messageStartedAt) {
 
@@ -2591,9 +2585,9 @@ try {
     }
 
 
-    // ==========================================
-    // LOAD PROFILE
-    // ==========================================
+
+
+
 
     const {
         data,
@@ -2617,9 +2611,9 @@ try {
     }
 
 
-    // ==========================================
-    // GLOBAL MESSAGE
-    // ==========================================
+
+
+
 
     let pendingGlobalMessage = null;
 
@@ -2636,9 +2630,9 @@ try {
     }
 
 
-    // ==========================================
-    // SPECIFIC MESSAGE
-    // ==========================================
+
+
+
 
     const pendingSpecificMessage =
         specificMessages.get(data.id) || null;
@@ -2651,9 +2645,9 @@ try {
     }
 
 
-    // ==========================================
-    // REACTIONS
-    // ==========================================
+
+
+
 
     const [reactions, admin] =
         await Promise.all([
@@ -2661,9 +2655,9 @@ try {
             isAdmin(data.id)
         ]);
 
-    // ==========================================
-    // EQUIPPED TITLE
-    // ==========================================
+
+
+
 
     let equippedTitle = null;
 
@@ -2705,9 +2699,9 @@ try {
     }
 
 
-    // ==========================================
-    // RESPONSE
-    // ==========================================
+
+
+
 
     res.json({
 
@@ -2734,9 +2728,9 @@ try {
             ogred:
                 reactions.ogred,
 
-            // ==================================
-            // EQUIPPED TITLE
-            // ==================================
+
+
+
 
             equippedTitle:
                 equippedTitle
@@ -2773,9 +2767,9 @@ try {
 
 
 
-// ==================================================
-// GET SPECIFIC MESSAGE FOR CURRENT USER
-// ==================================================
+
+
+
 
 app.get(
     "/api/specific-message",
@@ -2831,15 +2825,15 @@ app.get(
 
     }
 );
-// ==================================================
-// ONLINE STATUS
-// ==================================================
+
+
+
 
 app.get("/api/online", async (req, res) => {
 
     try {
 
-        // User is not logged in
+
         if (!req.session || !req.session.user) {
 
             return res.json({
@@ -2849,7 +2843,7 @@ app.get("/api/online", async (req, res) => {
         }
 
 
-        // Make sure the user still exists
+
         const {
             data,
             error
@@ -2872,7 +2866,7 @@ app.get("/api/online", async (req, res) => {
         }
 
 
-        // User is logged in
+
         res.json({
             online: true,
             userId: data.id
@@ -2927,8 +2921,8 @@ app.post("/api/admin/kick", async (req, res) => {
             });
         }
 
-        // Tell the client indirectly through /api/me,
-        // then clear the flag after 1 second.
+
+
         setTimeout(async () => {
 
             try {
@@ -3067,13 +3061,13 @@ app.get("/api/admin/check", async (req, res) => {
     }
 
 });
-// ==================================================
-// USERS
-// ==================================================
 
-// ==================================================
-// ALL USERS
-// ==================================================
+
+
+
+
+
+
 
 app.get(
     "/api/users",
@@ -3081,9 +3075,9 @@ app.get(
 
         try {
 
-            // ==========================================
-            // GET USERS
-            // ==========================================
+
+
+
 
             const {
                 data: users,
@@ -3123,9 +3117,9 @@ app.get(
             }
 
 
-            // ==========================================
-            // GET SHOP ITEMS
-            // ==========================================
+
+
+
 
             const {
                 data: shopItems,
@@ -3157,9 +3151,9 @@ app.get(
             }
 
 
-            // ==========================================
-            // CREATE ITEM LOOKUP
-            // ==========================================
+
+
+
 
             const titleMap = {};
 
@@ -3183,9 +3177,9 @@ app.get(
             }
 
 
-            // ==========================================
-            // GET REACTIONS
-            // ==========================================
+
+
+
 
             const {
                 data: reactions,
@@ -3213,9 +3207,9 @@ app.get(
             }
 
 
-            // ==========================================
-            // COUNT REACTIONS
-            // ==========================================
+
+
+
 
             const reactionCounts = {};
 
@@ -3282,9 +3276,9 @@ app.get(
             }
 
 
-            // ==========================================
-            // BUILD RESULT
-            // ==========================================
+
+
+
 
             const result =
                 (users || []).map(
@@ -3306,9 +3300,9 @@ app.get(
                             ) < 60 * 1000;
 
 
-                        // ==================================
-                        // EQUIPPED TITLE
-                        // ==================================
+
+
+
 
                         let equippedTitle =
                             null;
@@ -3366,9 +3360,9 @@ app.get(
                 );
 
 
-            // ==========================================
-            // SEND USERS
-            // ==========================================
+
+
+
 
             return res.json(
                 result
@@ -3394,9 +3388,9 @@ app.get(
 
 
 
-// ==================================================
-// ONE USER
-// ==================================================
+
+
+
 
 app.get(
     "/api/users/:id",
@@ -3415,9 +3409,9 @@ app.get(
             }
 
 
-            // ==========================================
-            // GET PROFILE
-            // ==========================================
+
+
+
 
             const {
                 data: profile,
@@ -3463,9 +3457,9 @@ app.get(
             }
 
 
-            // ==========================================
-            // GET EQUIPPED TITLE
-            // ==========================================
+
+
+
 
             let equippedTitle = null;
 
@@ -3513,9 +3507,9 @@ app.get(
             }
 
 
-            // ==========================================
-            // GET ALL DISPLAYED ITEMS
-            // ==========================================
+
+
+
 
             let displayedItems = [];
 
@@ -3554,9 +3548,9 @@ app.get(
             ) {
 
 
-                // ======================================
-                // GET SHOP ITEMS
-                // ======================================
+
+
+
 
                 const itemIds =
                     inventoryItems.map(
@@ -3647,9 +3641,9 @@ app.get(
             }
 
 
-            // ==========================================
-            // GET POSTS
-            // ==========================================
+
+
+
 
             const {
                 data: posts,
@@ -3684,17 +3678,17 @@ app.get(
             }
 
 
-            // ==========================================
-            // REACTIONS
-            // ==========================================
+
+
+
 
             const reactions =
                 await getReactionCounts(id);
 
 
-            // ==========================================
-            // RESPONSE
-            // ==========================================
+
+
+
 
             return res.json({
 
@@ -3741,9 +3735,151 @@ app.get(
 
     }
 );
-// ==================================================
-// UPDATE PROFILE
-// ==================================================
+
+
+
+app.post("/api/profile/avatar", upload.single("avatar"), async (req, res) => {
+    try {
+
+
+
+
+        if (!req.session || !req.session.user || !req.session.user.id) {
+            return res.status(401).json({
+                error: "You must be logged in."
+            });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({
+                error: "No avatar image was uploaded."
+            });
+        }
+
+        const userId = req.session.user.id;
+
+
+
+
+
+        const allowedTypes = [
+            "image/png",
+            "image/jpeg",
+            "image/webp",
+            "image/gif"
+        ];
+
+        if (!allowedTypes.includes(req.file.mimetype)) {
+            return res.status(400).json({
+                error: "Invalid image type. Use PNG, JPG, WEBP, or GIF."
+            });
+        }
+
+
+        if (req.file.size > 5 * 1024 * 1024) {
+            return res.status(400).json({
+                error: "Avatar must be 5 MB or smaller."
+            });
+        }
+
+
+
+
+
+        const extensionMap = {
+            "image/png": "png",
+            "image/jpeg": "jpg",
+            "image/webp": "webp",
+            "image/gif": "gif"
+        };
+
+        const extension = extensionMap[req.file.mimetype];
+
+
+        const filePath = `${userId}/avatar.${extension}`;
+
+
+
+
+
+        const { error: uploadError } = await supabase.storage
+            .from("avatars")
+            .upload(filePath, req.file.buffer, {
+                contentType: req.file.mimetype,
+                upsert: true,
+                cacheControl: "3600"
+            });
+
+        if (uploadError) {
+            console.error("AVATAR STORAGE ERROR:", uploadError);
+
+            return res.status(500).json({
+                error: "Failed to upload avatar."
+            });
+        }
+
+
+
+
+
+        const {
+            data: publicUrlData
+        } = supabase.storage
+            .from("avatars")
+            .getPublicUrl(filePath);
+
+        if (!publicUrlData || !publicUrlData.publicUrl) {
+            return res.status(500).json({
+                error: "Failed to create avatar URL."
+            });
+        }
+
+
+
+        const avatarUrl =
+            `${publicUrlData.publicUrl}?v=${Date.now()}`;
+
+
+
+
+
+        const { error: profileError } = await supabase
+            .from("profiles")
+            .update({
+                avatar: avatarUrl
+            })
+            .eq("id", userId);
+
+        if (profileError) {
+            console.error("AVATAR PROFILE UPDATE ERROR:", profileError);
+
+            return res.status(500).json({
+                error: "Avatar uploaded, but your profile could not be updated."
+            });
+        }
+
+
+
+
+
+        return res.json({
+            success: true,
+            avatar: avatarUrl
+        });
+
+    } catch (error) {
+        console.error("AVATAR UPLOAD ERROR:", error);
+
+        return res.status(500).json({
+            error: "Internal server error."
+        });
+    }
+});
+
+
+
+
+
 
 app.put(
     "/api/profile",
@@ -3872,9 +4008,9 @@ app.put(
     }
 );
 
-// ==================================================
-// AVATAR UPLOAD
-// ==================================================
+
+
+
 
 
 async function uploadImage(
@@ -3884,9 +4020,9 @@ async function uploadImage(
     userId
 ) {
 
-    // ==========================================
-    // CHECK DATA
-    // ==========================================
+
+
+
 
     if (
         !fileBuffer ||
@@ -3901,9 +4037,9 @@ async function uploadImage(
     }
 
 
-    // ==========================================
-    // GET EXTENSION
-    // ==========================================
+
+
+
 
     const extension =
         fileName
@@ -3912,9 +4048,9 @@ async function uploadImage(
             .toLowerCase();
 
 
-    // ==========================================
-    // ALLOWED EXTENSIONS
-    // ==========================================
+
+
+
 
     const allowedExtensions = [
         "png",
@@ -3944,17 +4080,17 @@ async function uploadImage(
     }
 
 
-    // ==========================================
-    // DETERMINE MIME TYPE
-    // ==========================================
+
+
+
 
     let contentType =
         fileType;
 
 
-    // Some browsers/clients can send an
-    // incorrect or empty MIME type.
-    // Trust the extension for known files.
+
+
+
 
     if (
         extension === "mp3"
@@ -4016,9 +4152,9 @@ async function uploadImage(
     }
 
 
-    // ==========================================
-    // SIZE LIMIT
-    // ==========================================
+
+
+
 
     const isVideo =
         extension === "mp4" ||
@@ -4053,9 +4189,9 @@ async function uploadImage(
     }
 
 
-    // ==========================================
-    // STORAGE PATH
-    // ==========================================
+
+
+
 
     const filePath =
         `posts/${userId}/${Date.now()}-${Math.random()
@@ -4063,9 +4199,9 @@ async function uploadImage(
             .slice(2)}.${extension}`;
 
 
-    // ==========================================
-    // UPLOAD TO SUPABASE
-    // ==========================================
+
+
+
 
     const {
         error: uploadError
@@ -4099,9 +4235,9 @@ async function uploadImage(
     }
 
 
-    // ==========================================
-    // PUBLIC URL
-    // ==========================================
+
+
+
 
     const {
         data: publicData
@@ -4128,9 +4264,9 @@ async function uploadImage(
     return publicData.publicUrl;
 
 }
-// ==================================================
-// POSTS
-// ==================================================
+
+
+
 
 app.get(
     "/api/posts",
@@ -4236,9 +4372,9 @@ app.post(
 
         try {
 
-            // ==========================================
-            // CHECK LOGIN
-            // ==========================================
+
+
+
 
             if (
                 !req.session ||
@@ -4257,9 +4393,9 @@ app.post(
                 req.session.user.id;
 
 
-            // ==========================================
-            // GET CONTENT
-            // ==========================================
+
+
+
 
             const content =
                 String(
@@ -4281,9 +4417,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // GET UPLOADED FILE
-            // ==========================================
+
+
+
 
             const file =
                 req.file ||
@@ -4294,9 +4430,9 @@ app.post(
                 null;
 
 
-            // ==========================================
-            // UPLOAD IMAGE / VIDEO
-            // ==========================================
+
+
+
 
             if (file) {
 
@@ -4327,9 +4463,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // CHECK EMPTY POST
-            // ==========================================
+
+
+
 
             if (
                 !content &&
@@ -4344,9 +4480,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // CREATE POST
-            // ==========================================
+
+
+
 
             const {
                 data,
@@ -4385,9 +4521,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // FIRST POST OF THE DAY
-            // ==========================================
+
+
+
 
             const todayUTC =
                 new Date()
@@ -4484,9 +4620,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // SUCCESS
-            // ==========================================
+
+
+
 
             return res.status(201).json({
 
@@ -4511,13 +4647,7 @@ app.post(
 
     }
 );
-/* ==================================================
-   LEADERBOARD
-   ================================================== */
 
-/* ==================================================
-   LEADERBOARD API
-================================================== */
 
 app.get("/api/leaderboard", async (req, res) => {
 
@@ -4546,10 +4676,6 @@ app.get("/api/leaderboard", async (req, res) => {
         }
 
 
-        /* ==================================================
-           GET PROFILES
-        ================================================== */
-
         const {
             data: profiles,
             error: profilesError
@@ -4577,9 +4703,6 @@ app.get("/api/leaderboard", async (req, res) => {
         }
 
 
-        /* ==================================================
-           GET POSTS
-        ================================================== */
 
         const {
             data: posts,
@@ -4603,9 +4726,7 @@ app.get("/api/leaderboard", async (req, res) => {
         }
 
 
-        /* ==================================================
-           COUNT POSTS
-        ================================================== */
+
 
         const postCounts = {};
 
@@ -4622,9 +4743,6 @@ app.get("/api/leaderboard", async (req, res) => {
         }
 
 
-        /* ==================================================
-           GET COMMENTS
-        ================================================== */
 
         const {
             data: comments,
@@ -4648,9 +4766,7 @@ app.get("/api/leaderboard", async (req, res) => {
         }
 
 
-        /* ==================================================
-           COUNT COMMENTS
-        ================================================== */
+
 
         const commentCounts = {};
 
@@ -4667,9 +4783,7 @@ app.get("/api/leaderboard", async (req, res) => {
         }
 
 
-        /* ==================================================
-           GET REACTIONS
-        ================================================== */
+
 
         const {
             data: reactions,
@@ -4696,9 +4810,6 @@ app.get("/api/leaderboard", async (req, res) => {
         }
 
 
-        /* ==================================================
-           COUNT REACTIONS PER USER
-        ================================================== */
 
         const reactionCounts = {};
 
@@ -4745,9 +4856,7 @@ app.get("/api/leaderboard", async (req, res) => {
         }
 
 
-        /* ==================================================
-           BUILD USERS
-        ================================================== */
+
 
         let users =
             (profiles || []).map(profile => {
@@ -4788,13 +4897,6 @@ app.get("/api/leaderboard", async (req, res) => {
                     reactionsForUser.ogred;
 
 
-                /* ==========================================
-                   OVERALL SCORE
-                   
-                   Posts     = 5 points
-                   Comments  = 2 points
-                   Reactions = 1 point
-                   ========================================== */
 
                 const score =
                     (
@@ -4905,9 +5007,7 @@ app.get("/api/leaderboard", async (req, res) => {
             });
 
 
-        /* ==================================================
-           SORT BY SCORE
-        ================================================== */
+
 
         users.sort(
             (a, b) => {
@@ -4925,11 +5025,7 @@ app.get("/api/leaderboard", async (req, res) => {
                 }
 
 
-                /*
-                 * Deterministic ordering for tied users.
-                 *
-                 * THIS DOES NOT AFFECT THEIR RANK.
-                 */
+
 
                 return String(a.id)
                     .localeCompare(
@@ -4940,20 +5036,7 @@ app.get("/api/leaderboard", async (req, res) => {
         );
 
 
-        /* ==================================================
-           TIE-AWARE RANKING
-           
-           Example:
-           
-           1 = 100
-           2 = 80
-           2 = 80
-           4 = 50
-           5 = 20
-           5 = 20
-           5 = 20
-           8 = 10
-        ================================================== */
+
 
         let previousScore = null;
 
@@ -4994,17 +5077,11 @@ app.get("/api/leaderboard", async (req, res) => {
         );
 
 
-        /* ==================================================
-           TOP 5
-        ================================================== */
+
 
         const topFive =
             users.slice(0, 5);
 
-
-        /* ==================================================
-           CURRENT LOGGED-IN USER
-        ================================================== */
 
         let currentUser = null;
 
@@ -5070,9 +5147,7 @@ app.get("/api/leaderboard", async (req, res) => {
         }
 
 
-        /* ==================================================
-           RETURN
-        ================================================== */
+
 
         return res.json({
 
@@ -5106,9 +5181,9 @@ app.get("/api/leaderboard", async (req, res) => {
     }
 
 });
-// ==================================================
-// COMMENTS
-// ==================================================
+
+
+
 
 app.get(
     "/api/posts/:postId/comments",
@@ -5216,9 +5291,9 @@ app.post(
 
         try {
 
-            // ==========================================
-            // CHECK LOGIN
-            // ==========================================
+
+
+
 
             if (!req.session?.user) {
 
@@ -5237,9 +5312,9 @@ app.post(
                 req.params.postId;
 
 
-            // ==========================================
-            // GET CONTENT
-            // ==========================================
+
+
+
 
             const content =
                 String(
@@ -5258,9 +5333,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // FILE
-            // ==========================================
+
+
+
 
             const file =
                 req.file || null;
@@ -5271,9 +5346,9 @@ app.post(
 
 
 
-            // ==========================================
-            // UPLOAD IMAGE / VIDEO
-            // ==========================================
+
+
+
 
             if (file) {
 
@@ -5359,9 +5434,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // CHECK EMPTY COMMENT
-            // ==========================================
+
+
+
 
             if (
                 !content &&
@@ -5376,9 +5451,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // CREATE COMMENT
-            // ==========================================
+
+
+
 
             const {
                 data,
@@ -5427,9 +5502,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // FIRST COMMENT OF THE DAY
-            // ==========================================
+
+
+
 
             const todayUTC =
                 new Date()
@@ -5470,9 +5545,9 @@ app.post(
             } else {
 
 
-                // ======================================
-                // FIRST COMMENT OF UTC DAY
-                // ======================================
+
+
+
 
 
                 if (
@@ -5509,9 +5584,9 @@ app.post(
 
                     } else {
 
-                        // ==================================
-                        // MARK REWARD AS CLAIMED
-                        // ==================================
+
+
+
 
                         const {
                             error: dateError
@@ -5542,9 +5617,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // SUCCESS
-            // ==========================================
+
+
+
 
             return res.status(201).json({
                 ...data
@@ -5575,9 +5650,9 @@ app.post(
 
         try {
 
-            // ==========================================
-            // CHECK LOGIN
-            // ==========================================
+
+
+
 
             if (
                 !req.session ||
@@ -5595,9 +5670,9 @@ app.post(
                 req.session.user.id;
 
 
-            // ==========================================
-            // GET DATA
-            // ==========================================
+
+
+
 
             const name =
                 String(
@@ -5632,9 +5707,9 @@ app.post(
                 req.body.file;
 
 
-            // ==========================================
-            // VALIDATION
-            // ==========================================
+
+
+
 
             if (!name) {
 
@@ -5718,9 +5793,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // DECODE FILE
-            // ==========================================
+
+
+
 
             let fileBuffer;
 
@@ -5751,9 +5826,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // FILE SIZE
-            // ==========================================
+
+
+
 
             const maxSize =
                 20 * 1024 * 1024;
@@ -5771,9 +5846,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // SAFE FILE NAME
-            // ==========================================
+
+
+
 
             const safeName =
                 file.name
@@ -5786,9 +5861,9 @@ app.post(
                 `shop/${userId}/${Date.now()}-${safeName}`;
 
 
-            // ==========================================
-            // UPLOAD TO SUPABASE STORAGE
-            // ==========================================
+
+
+
 
             const {
                 error: uploadError
@@ -5823,9 +5898,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // GET PUBLIC URL
-            // ==========================================
+
+
+
 
             const {
                 data: publicData
@@ -5857,9 +5932,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // CREATE SHOP ITEM
-            // ==========================================
+
+
+
 
             const {
                 data: item,
@@ -5869,7 +5944,7 @@ app.post(
                     .from("shop_items")
                     .insert({
 
-                        // ORIGINAL CREATOR
+
                         user_id:
                             userId,
 
@@ -5895,9 +5970,9 @@ app.post(
                     .single();
 
 
-            // ==========================================
-            // DATABASE ERROR
-            // ==========================================
+
+
+
 
             if (itemError) {
 
@@ -5922,9 +5997,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // CREATE MARKETPLACE LISTING
-            // ==========================================
+
+
+
 
             const {
                 data: listing,
@@ -5947,9 +6022,9 @@ app.post(
                     .single();
 
 
-            // ==========================================
-            // MARKETPLACE ERROR
-            // ==========================================
+
+
+
 
             if (listingError) {
 
@@ -5959,7 +6034,7 @@ app.post(
                 );
 
 
-                // Delete the shop item
+
                 await supabase
                     .from("shop_items")
                     .delete()
@@ -5969,7 +6044,7 @@ app.post(
                     );
 
 
-                // Delete uploaded file
+
                 await supabase.storage
                     .from("avatars")
                     .remove([
@@ -5985,9 +6060,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // GIVE CREATOR OWNERSHIP
-            // ==========================================
+
+
+
 
             const {
                 error: ownershipError
@@ -6004,9 +6079,9 @@ app.post(
                     });
 
 
-            // ==========================================
-            // OWNERSHIP ERROR
-            // ==========================================
+
+
+
 
             if (ownershipError) {
 
@@ -6016,7 +6091,7 @@ app.post(
                 );
 
 
-                // Roll everything back
+
 
                 await supabase
                     .from("marketplace_listings")
@@ -6051,9 +6126,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // SUCCESS
-            // ==========================================
+
+
+
 
             return res.status(201).json({
 
@@ -6089,9 +6164,9 @@ app.post(
     }
 );
 
-// ==================================================
-// BUY SHOP ITEM
-// ==================================================
+
+
+
 
 app.post(
     "/api/shop/buy",
@@ -6099,9 +6174,9 @@ app.post(
 
         try {
 
-            // ==========================================
-            // CHECK LOGIN
-            // ==========================================
+
+
+
 
             if (
                 !req.session ||
@@ -6121,9 +6196,9 @@ app.post(
                 req.session.user.id;
 
 
-            // ==========================================
-            // GET ITEM ID
-            // ==========================================
+
+
+
 
             const itemId =
                 req.body &&
@@ -6161,9 +6236,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // PURCHASE
-            // ==========================================
+
+
+
 
             const {
                 data,
@@ -6181,9 +6256,9 @@ app.post(
                 );
 
 
-            // ==========================================
-            // DATABASE ERROR
-            // ==========================================
+
+
+
 
             if (error) {
 
@@ -6198,7 +6273,7 @@ app.post(
                     "Purchase failed.";
 
 
-                // Not enough coins
+
 
                 if (
                     message.toLowerCase()
@@ -6215,7 +6290,7 @@ app.post(
                 }
 
 
-                // Already owns item
+
 
                 if (
                     message.toLowerCase()
@@ -6232,7 +6307,7 @@ app.post(
                 }
 
 
-                // Item doesn't exist
+
 
                 if (
                     message.toLowerCase()
@@ -6261,9 +6336,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // GET NEW COIN BALANCE
-            // ==========================================
+
+
+
 
             const {
                 data: profile,
@@ -6289,9 +6364,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // SUCCESS
-            // ==========================================
+
+
+
 
             return res.json({
 
@@ -6326,32 +6401,32 @@ app.post(
 
     }
 );
-// ==================================================
-// SHOP INVENTORY
-// ==================================================
 
 
-// ==================================================
-// SHOP INVENTORY
-// ==================================================
-
-// ==================================================
-// SHOP INVENTORY
-// ==================================================
 
 
-// ==================================================
-// EQUIP SHOP TITLE
-// ==================================================
-
-// ==================================================
-// EQUIP / DISPLAY SHOP ITEM
-// ==================================================
 
 
-// ==================================================
-// EQUIP SHOP ITEM
-// ==================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 app.post(
     "/api/shop/equip",
@@ -6359,9 +6434,9 @@ app.post(
 
         try {
 
-            // ==========================================
-            // CHECK LOGIN
-            // ==========================================
+
+
+
 
             if (
                 !req.session ||
@@ -6381,9 +6456,9 @@ app.post(
                 req.session.user.id;
 
 
-            // ==========================================
-            // GET ITEM ID
-            // ==========================================
+
+
+
 
             const itemId =
                 req.body &&
@@ -6409,9 +6484,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // CHECK OWNERSHIP
-            // ==========================================
+
+
+
 
             const {
                 data: ownership,
@@ -6460,9 +6535,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // GET SHOP ITEM
-            // ==========================================
+
+
+
 
             const {
                 data: item,
@@ -6510,9 +6585,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // TITLE
-            // ==========================================
+
+
+
 
             if (
                 item.item_type ===
@@ -6567,9 +6642,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // CHECK IF ALREADY EQUIPPED
-            // ==========================================
+
+
+
 
             if (
                 ownership.equipped
@@ -6594,9 +6669,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // COUNT EQUIPPED ITEMS
-            // ==========================================
+
+
+
 
             const {
                 count,
@@ -6638,9 +6713,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // MAXIMUM 5 ITEMS
-            // ==========================================
+
+
+
 
             if (
                 (count || 0) >= 5
@@ -6654,9 +6729,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // EQUIP ITEM
-            // ==========================================
+
+
+
 
             const {
                 error: equipError
@@ -6724,9 +6799,9 @@ app.post(
 
     }
 );
-// ==================================================
-// UNDISPLAY SHOP ITEM
-// ==================================================
+
+
+
 
 app.post(
     "/api/shop/undisplay",
@@ -6734,9 +6809,9 @@ app.post(
 
         try {
 
-            // ==========================================
-            // CHECK LOGIN
-            // ==========================================
+
+
+
 
             if (
                 !req.session ||
@@ -6756,9 +6831,9 @@ app.post(
                 req.session.user.id;
 
 
-            // ==========================================
-            // GET ITEM ID
-            // ==========================================
+
+
+
 
             const itemId =
                 req.body &&
@@ -6784,9 +6859,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // CHECK OWNERSHIP
-            // ==========================================
+
+
+
 
             const {
                 data: ownership,
@@ -6833,9 +6908,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // UNDISPLAY
-            // ==========================================
+
+
+
 
             const {
                 error: updateError
@@ -6897,9 +6972,9 @@ app.post(
 
     }
 );
-// ==================================================
-// UNEQUIP / HIDE SHOP ITEM
-// ==================================================
+
+
+
 
 app.post(
     "/api/shop/unequip",
@@ -6930,9 +7005,9 @@ app.post(
                 req.body.item_id;
 
 
-            // ==========================================
-            // IF NO ITEM ID → UNEQUIP TITLE
-            // ==========================================
+
+
+
 
             if (
                 itemId === undefined ||
@@ -6992,9 +7067,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // CHECK ITEM TYPE
-            // ==========================================
+
+
+
 
             const {
                 data: item,
@@ -7022,9 +7097,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // HIDE NORMAL ITEM
-            // ==========================================
+
+
+
 
             if (
                 item.item_type !==
@@ -7066,9 +7141,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // UNEQUIP TITLE
-            // ==========================================
+
+
+
 
             const {
                 error
@@ -7119,9 +7194,9 @@ app.post(
 
     }
 );
-// ==================================================
-// GET SHOP ITEMS
-// ==================================================
+
+
+
 app.get("/api/shop/items", async (req, res) => {
     try {
         const {
@@ -7196,9 +7271,9 @@ app.post(
 
         try {
 
-            // ==========================================
-            // CHECK LOGIN
-            // ==========================================
+
+
+
 
             if (
                 !req.session ||
@@ -7217,9 +7292,9 @@ app.post(
                 req.session.user.id;
 
 
-            // ==========================================
-            // GET DATA
-            // ==========================================
+
+
+
 
             const name =
                 String(
@@ -7254,9 +7329,9 @@ app.post(
                 req.body.file;
 
 
-            // ==========================================
-            // VALIDATION
-            // ==========================================
+
+
+
 
             if (!name) {
 
@@ -7347,9 +7422,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // DECODE FILE
-            // ==========================================
+
+
+
 
             let fileBuffer;
 
@@ -7381,9 +7456,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // FILE SIZE
-            // ==========================================
+
+
+
 
             const maxSize =
                 20 * 1024 * 1024;
@@ -7402,9 +7477,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // SAFE FILE NAME
-            // ==========================================
+
+
+
 
             const safeName =
                 file.name
@@ -7418,9 +7493,9 @@ app.post(
                 `shop/${userId}/${Date.now()}-${safeName}`;
 
 
-            // ==========================================
-            // UPLOAD TO SUPABASE STORAGE
-            // ==========================================
+
+
+
 
             const {
                 error: uploadError
@@ -7457,9 +7532,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // GET PUBLIC URL
-            // ==========================================
+
+
+
 
             const {
                 data: publicData
@@ -7491,9 +7566,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // CREATE SHOP ITEM
-            // ==========================================
+
+
+
 
             const {
                 data: item,
@@ -7526,9 +7601,9 @@ app.post(
                     .single();
 
 
-            // ==========================================
-            // DATABASE ERROR
-            // ==========================================
+
+
+
 
             if (itemError) {
 
@@ -7553,9 +7628,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // CREATE MARKETPLACE LISTING
-            // ==========================================
+
+
+
 
             const {
                 data: listing,
@@ -7579,9 +7654,9 @@ app.post(
                     .single();
 
 
-            // ==========================================
-            // MARKETPLACE ERROR
-            // ==========================================
+
+
+
 
             if (listingError) {
 
@@ -7591,7 +7666,7 @@ app.post(
                 );
 
 
-                // Delete the shop item
+
 
                 await supabase
                     .from("shop_items")
@@ -7602,7 +7677,7 @@ app.post(
                     );
 
 
-                // Delete uploaded file
+
 
                 await supabase.storage
                     .from("avatars")
@@ -7619,9 +7694,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // GIVE CREATOR OWNERSHIP
-            // ==========================================
+
+
+
 
             const {
                 error: ownershipError
@@ -7639,9 +7714,9 @@ app.post(
                     });
 
 
-            // ==========================================
-            // OWNERSHIP ERROR
-            // ==========================================
+
+
+
 
             if (ownershipError) {
 
@@ -7651,7 +7726,7 @@ app.post(
                 );
 
 
-                // Roll everything back
+
 
                 await supabase
                     .from("marketplace_listings")
@@ -7686,9 +7761,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // SUCCESS
-            // ==========================================
+
+
+
 
             return res.status(201).json({
 
@@ -7724,9 +7799,9 @@ app.post(
 
     }
 );
-// ==================================================
-// GET MY SHOP ITEMS
-// ==================================================
+
+
+
 
 app.get(
     "/api/shop/my-items",
@@ -7818,13 +7893,13 @@ app.get(
 
     }
 );
-// ==================================================
-// REACTIONS
-// ==================================================
 
-// ==================================================
-// ADD REACTION + SHREKCOIN REWARD
-// ==================================================
+
+
+
+
+
+
 
 async function addReaction(
     req,
@@ -7834,9 +7909,9 @@ async function addReaction(
 
     try {
 
-        // ==========================================
-        // CHECK LOGIN
-        // ==========================================
+
+
+
 
         if (!req.session.user) {
 
@@ -7855,9 +7930,9 @@ async function addReaction(
             req.params.id;
 
 
-        // ==========================================
-        // PREVENT SELF REACTION
-        // ==========================================
+
+
+
 
         if (
             fromUserId ===
@@ -7872,9 +7947,9 @@ async function addReaction(
         }
 
 
-        // ==========================================
-        // VALIDATE REACTION TYPE
-        // ==========================================
+
+
+
 
         const validTypes = [
             "gyatt",
@@ -7895,9 +7970,9 @@ async function addReaction(
         }
 
 
-        // ==========================================
-        // CHECK TARGET USER
-        // ==========================================
+
+
+
 
         const {
             data: targetUser,
@@ -7939,9 +8014,9 @@ async function addReaction(
         }
 
 
-        // ==========================================
-        // CREATE REACTION
-        // ==========================================
+
+
+
 
         const {
             error: insertError
@@ -7960,9 +8035,9 @@ async function addReaction(
             });
 
 
-        // ==========================================
-        // DUPLICATE REACTION
-        // ==========================================
+
+
+
 
         if (insertError) {
 
@@ -8009,9 +8084,9 @@ async function addReaction(
         }
 
 
-        // ==========================================
-        // GIVE TARGET USER +1 SHREKCOIN
-        // ==========================================
+
+
+
 
         const {
             error: coinError
@@ -8034,18 +8109,18 @@ async function addReaction(
                 coinError
             );
 
-            // The reaction was already created.
-            // Don't undo it here.
-            //
-            // This means the reaction still works
-            // even if the coin reward has a problem.
+
+
+
+
+
 
         }
 
 
-        // ==========================================
-        // GET UPDATED REACTION COUNT
-        // ==========================================
+
+
+
 
         const {
             count,
@@ -8081,9 +8156,9 @@ async function addReaction(
         }
 
 
-        // ==========================================
-        // SUCCESS
-        // ==========================================
+
+
+
 
         res.json({
 
@@ -8154,9 +8229,9 @@ app.post(
     }
 );
 
-// ==================================================
-// SHREKCHAT - ROOMS
-// ==================================================
+
+
+
 
 app.get(
     "/api/chat/rooms",
@@ -8270,9 +8345,9 @@ app.get(
     }
 );
 
-// ==================================================
-// CREATE ROOM
-// ==================================================
+
+
+
 
 app.post(
     "/api/chat/rooms",
@@ -8384,9 +8459,9 @@ app.post(
     }
 );
 
-// ==================================================
-// JOIN ROOM
-// ==================================================
+
+
+
 
 app.post(
     "/api/chat/rooms/:roomId/join",
@@ -8517,9 +8592,9 @@ app.post(
     }
 );
 
-// ==================================================
-// LEAVE ROOM
-// ==================================================
+
+
+
 
 app.post(
     "/api/chat/rooms/:roomId/leave",
@@ -8576,9 +8651,9 @@ app.post(
     }
 );
 
-// ==================================================
-// DELETE ROOM
-// ==================================================
+
+
+
 
 app.delete(
     "/api/chat/rooms/:roomId",
@@ -8661,9 +8736,9 @@ app.delete(
     }
 );
 
-// ==================================================
-// INVITABLE USERS
-// ==================================================
+
+
+
 
 app.get(
     "/api/chat/rooms/:roomId/invite-users",
@@ -8795,9 +8870,9 @@ app.get(
     }
 );
 
-// ==================================================
-// INVITE USER
-// ==================================================
+
+
+
 
 app.post(
     "/api/chat/rooms/:roomId/invite",
@@ -8920,9 +8995,9 @@ app.post(
     }
 );
 
-// ==================================================
-// GET MESSAGES
-// ==================================================
+
+
+
 
 app.get(
     "/api/chat/rooms/:roomId/messages",
@@ -9093,9 +9168,9 @@ app.get(
     }
 );
 
-// ==================================================
-// SEND MESSAGE
-// ==================================================
+
+
+
 
 app.post(
     "/api/chat/rooms/:roomId/messages",
@@ -9203,9 +9278,9 @@ app.post(
     }
 );
 
-// ==================================================
-// HEARTBEAT
-// ==================================================
+
+
+
 
 app.post(
     "/api/heartbeat",
@@ -9262,9 +9337,9 @@ app.post(
     }
 );
 
-// ==================================================
-// SHREKBOOK ADMIN SYSTEM
-// ==================================================
+
+
+
 
 const ROLE_LEVELS = {
     peasant: 0,
@@ -9290,9 +9365,9 @@ const VALID_ROLES = [
 ];
 
 
-// ==================================================
-// REQUIRE LOGIN
-// ==================================================
+
+
+
 
 function requireLogin(req, res, next) {
 
@@ -9309,9 +9384,9 @@ function requireLogin(req, res, next) {
 }
 
 
-// ==================================================
-// GET CURRENT ADMIN
-// ==================================================
+
+
+
 
 async function getAdminActor(req) {
 
@@ -9376,9 +9451,9 @@ async function getAdminActor(req) {
 }
 
 
-// ==================================================
-// REQUIRE ADMIN
-// ==================================================
+
+
+
 
 async function requireAdmin(req, res) {
 
@@ -9430,9 +9505,9 @@ async function requireAdmin(req, res) {
 }
 
 
-// ==================================================
-// CAN MANAGE
-// ==================================================
+
+
+
 
 function canManageRole(
     actorRole,
@@ -9447,9 +9522,9 @@ function canManageRole(
 }
 
 
-// ==================================================
-// ADMIN AUTH
-// ==================================================
+
+
+
 
 app.get(
     "/api/admin/auth",
@@ -9496,9 +9571,9 @@ app.get(
 );
 
 
-// ==================================================
-// ADMIN USER LIST
-// ==================================================
+
+
+
 
 app.get(
     "/api/admin/users",
@@ -9569,9 +9644,9 @@ app.get(
 );
 
 
-// ==================================================
-// CHANGE ROLE
-// ==================================================
+
+
+
 
 app.put(
     "/api/admin/users/:id/role",
@@ -9680,7 +9755,7 @@ app.put(
             }
 
 
-            // Only owner can assign owner.
+
 
             if (
                 newRole === "owner" &&
@@ -9695,8 +9770,8 @@ app.put(
             }
 
 
-            // Non-owner cannot assign
-            // equal or higher role.
+
+
 
             if (
                 actor.role !== "owner" &&
@@ -9774,9 +9849,9 @@ app.put(
 );
 
 
-// ==================================================
-// BAN
-// ==================================================
+
+
+
 
 app.post(
     "/api/admin/users/:id/ban",
@@ -9918,9 +9993,9 @@ app.post(
 );
 
 
-// ==================================================
-// UNBAN
-// ==================================================
+
+
+
 
 app.post(
     "/api/admin/users/:id/unban",
@@ -9929,9 +10004,9 @@ app.post(
 
         try {
 
-            // ==========================================
-            // ROLES ALLOWED TO UNBAN
-            // ==========================================
+
+
+
 
             const canUnban = [
                 "administrator",
@@ -9939,9 +10014,9 @@ app.post(
             ];
 
 
-            // ==========================================
-            // GET ACTOR
-            // ==========================================
+
+
+
 
             const actor =
                 await requireAdmin(
@@ -9955,9 +10030,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // CHECK ACTOR PERMISSION
-            // ==========================================
+
+
+
 
             if (
                 !canUnban.includes(
@@ -9973,9 +10048,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // GET TARGET USER
-            // ==========================================
+
+
+
 
             const {
                 data: target,
@@ -10007,9 +10082,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // USER NOT FOUND
-            // ==========================================
+
+
+
 
             if (!target) {
 
@@ -10021,9 +10096,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // PREVENT SELF-UNBAN
-            // ==========================================
+
+
+
 
             if (
                 target.id === actor.id
@@ -10037,9 +10112,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // CHECK ROLE MANAGEMENT
-            // ==========================================
+
+
+
 
             if (
                 !canManageRole(
@@ -10056,9 +10131,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // UNBAN USER
-            // ==========================================
+
+
+
 
             const {
                 error: updateError
@@ -10088,9 +10163,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // SUCCESS
-            // ==========================================
+
+
+
 
             console.log(
                 `🔓 ${actor.username} unbanned ${target.username}`
@@ -10126,9 +10201,9 @@ app.post(
 );
 
 
-// ==================================================
-// KICK
-// ==================================================
+
+
+
 
 app.post(
     "/api/admin/users/:id/kick",
@@ -10270,15 +10345,15 @@ app.post(
 );
 
 
-// ==================================================
-// CLEAR KICK
-// ==================================================
-//
-// This is NOT a "reactivate" system.
-// It simply clears the temporary kick flag.
-//
-// Your admin panel doesn't have to expose this.
-// ==================================================
+
+
+
+
+
+
+
+
+
 
 app.post(
     "/api/admin/users/:id/clear-kick",
@@ -10408,15 +10483,15 @@ app.post(
 );
 
 
-// ==================================================
-// MODERATION STATUS
-// ==================================================
-//
-// THIS is what makes existing open pages
-// detect bans/kicks.
-//
-// Login system is NOT touched.
-// ==================================================
+
+
+
+
+
+
+
+
+
 
 app.get(
     "/api/moderation/status",
@@ -10493,14 +10568,14 @@ app.get(
 
 app.post("/api/admin/reset-password", async (req, res) => {
     try {
-        // Make sure someone is actually logged in
+
         if (!req.session || !req.session.user) {
             return res.status(401).json({
                 error: "Not logged in"
             });
         }
 
-        // Get the currently logged-in admin's profile
+
         const { data: admin, error: adminError } = await supabase
             .from("profiles")
             .select("id, role")
@@ -10513,7 +10588,7 @@ app.post("/api/admin/reset-password", async (req, res) => {
             });
         }
 
-        // Only administrators and owner can reset passwords
+
         if (admin.role !== "administrator" && admin.role !== "owner") {
             return res.status(403).json({
                 error: "You do not have permission to reset passwords"
@@ -10534,7 +10609,7 @@ app.post("/api/admin/reset-password", async (req, res) => {
             });
         }
 
-        // Change the user's Supabase Auth password
+
         const { data, error } =
             await supabase.auth.admin.updateUserById(
                 userId,
@@ -10565,12 +10640,12 @@ app.post("/api/admin/reset-password", async (req, res) => {
         });
     }
 });
-// ==================================================
-// SHOP INVENTORY
-// ==================================================
-// ==================================================
-// ADMIN SHREKCOINS
-// ==================================================
+
+
+
+
+
+
 
 app.post(
     "/api/admin/users/:id/shrekcoins",
@@ -10646,7 +10721,7 @@ app.post(
             }
 
 
-            // Get target
+
 
             const {
                 data: target,
@@ -10688,8 +10763,8 @@ app.post(
             }
 
 
-            // Admin cannot modify
-            // someone with an equal/higher role.
+
+
 
             if (
                 !canManageRole(
@@ -10810,9 +10885,9 @@ app.post(
     }
 );
 
-// ==================================================
-// ADMIN SHREKCOIN MANAGEMENT
-// ==================================================
+
+
+
 
 app.post(
     "/api/admin/shrekcoins",
@@ -10821,9 +10896,9 @@ app.post(
 
         try {
 
-            // ==========================================
-            // CHECK ADMIN
-            // ==========================================
+
+
+
 
             const actor =
                 await requireAdmin(
@@ -10836,9 +10911,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // GET INPUT
-            // ==========================================
+
+
+
 
             const userId =
                 String(
@@ -10858,9 +10933,9 @@ app.post(
                 );
 
 
-            // ==========================================
-            // VALIDATE USER ID
-            // ==========================================
+
+
+
 
             if (!userId) {
 
@@ -10872,9 +10947,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // VALIDATE ACTION
-            // ==========================================
+
+
+
 
             if (
                 action !== "give" &&
@@ -10889,9 +10964,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // VALIDATE AMOUNT
-            // ==========================================
+
+
+
 
             if (
                 !Number.isInteger(amount) ||
@@ -10906,9 +10981,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // GET TARGET USER
-            // ==========================================
+
+
+
 
             const {
                 data: target,
@@ -10950,9 +11025,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // PREVENT NEGATIVE BALANCE
-            // ==========================================
+
+
+
 
             const currentBalance =
                 Number(
@@ -10984,9 +11059,9 @@ app.post(
             }
 
 
-            // ==========================================
-            // UPDATE BALANCE
-            // ==========================================
+
+
+
 
             const {
                 data: updated,
@@ -11024,18 +11099,18 @@ app.post(
             }
 
 
-            // ==========================================
-            // LOG ACTION
-            // ==========================================
+
+
+
 
             console.log(
                 `🪙 ADMIN: ${actor.username} ${action} ${amount} ShrekCoins ${target.username}. New balance: ${newBalance}`
             );
 
 
-            // ==========================================
-            // SUCCESS
-            // ==========================================
+
+
+
 
             return res.json({
 
@@ -11081,9 +11156,9 @@ app.get("/api/shop/inventory", async (req, res) => {
 
     try {
 
-        // ==========================================
-        // CHECK LOGIN
-        // ==========================================
+
+
+
 
         if (
             !req.session ||
@@ -11100,9 +11175,9 @@ app.get("/api/shop/inventory", async (req, res) => {
         const userId = req.session.user.id;
 
 
-        // ==========================================
-        // GET OWNED ITEMS
-        // ==========================================
+
+
+
 
         const {
             data: ownedItems,
@@ -11139,9 +11214,9 @@ app.get("/api/shop/inventory", async (req, res) => {
         }
 
 
-        // ==========================================
-        // GET PROFILE
-        // ==========================================
+
+
+
 
         const {
             data: profile,
@@ -11170,9 +11245,9 @@ app.get("/api/shop/inventory", async (req, res) => {
         }
 
 
-        // ==========================================
-        // GET EQUIPPED TITLE
-        // ==========================================
+
+
+
 
         let equippedTitle = null;
 
@@ -11223,9 +11298,9 @@ app.get("/api/shop/inventory", async (req, res) => {
         }
 
 
-        // ==========================================
-        // GET DISPLAYED ITEM
-        // ==========================================
+
+
+
 
         let displayedItem = null;
 
@@ -11272,9 +11347,9 @@ app.get("/api/shop/inventory", async (req, res) => {
         }
 
 
-        // ==========================================
-        // FORMAT INVENTORY
-        // ==========================================
+
+
+
 
         const items =
             (ownedItems || [])
@@ -11319,9 +11394,9 @@ app.get("/api/shop/inventory", async (req, res) => {
                 .filter(Boolean);
 
 
-        // ==========================================
-        // DISPLAYED ITEMS
-        // ==========================================
+
+
+
 
         const displayedItems =
             items.filter(item => {
@@ -11334,9 +11409,9 @@ app.get("/api/shop/inventory", async (req, res) => {
             });
 
 
-        // ==========================================
-        // RESPONSE
-        // ==========================================
+
+
+
 
         return res.json({
 
@@ -11379,9 +11454,9 @@ app.get(
 
         try {
 
-            // ==========================================
-            // CHECK LOGIN
-            // ==========================================
+
+
+
 
             if (
                 !req.session ||
@@ -11401,9 +11476,9 @@ app.get(
                 req.session.user.id;
 
 
-            // ==========================================
-            // GET ITEM ID
-            // ==========================================
+
+
+
 
             const itemId =
                 Number(req.params.id);
@@ -11422,9 +11497,9 @@ app.get(
             }
 
 
-            // ==========================================
-            // CHECK OWNERSHIP
-            // ==========================================
+
+
+
 
             const {
                 data: ownership,
@@ -11469,9 +11544,9 @@ app.get(
             }
 
 
-            // ==========================================
-            // GET AVATAR
-            // ==========================================
+
+
+
 
             const {
                 data: item,
@@ -11517,9 +11592,9 @@ app.get(
             }
 
 
-            // ==========================================
-            // MAKE SURE IT IS AN AVATAR
-            // ==========================================
+
+
+
 
             if (
                 item.item_type !==
@@ -11534,9 +11609,9 @@ app.get(
             }
 
 
-            // ==========================================
-            // CHECK FILE URL
-            // ==========================================
+
+
+
 
             if (
                 !item.item_value
@@ -11550,9 +11625,9 @@ app.get(
             }
 
 
-            // ==========================================
-            // DOWNLOAD FILE
-            // ==========================================
+
+
+
 
             const avatarResponse =
                 await fetch(
@@ -11588,9 +11663,9 @@ app.get(
                 );
 
 
-            // ==========================================
-            // CREATE SAFE FILENAME
-            // ==========================================
+
+
+
 
             const safeName =
                 String(
@@ -11608,9 +11683,9 @@ app.get(
                     );
 
 
-            // ==========================================
-            // SEND FILE
-            // ==========================================
+
+
+
 
             res.setHeader(
                 "Content-Type",
@@ -11653,9 +11728,9 @@ app.post("/api/hambicoin/exchange", async (req, res) => {
 
     try {
 
-        // ==========================================
-        // CHECK LOGIN
-        // ==========================================
+
+
+
 
         if (!req.session.user) {
 
@@ -11669,9 +11744,9 @@ app.post("/api/hambicoin/exchange", async (req, res) => {
             req.session.user.id;
 
 
-        // ==========================================
-        // GET INPUT
-        // ==========================================
+
+
+
 
         const {
             direction,
@@ -11683,9 +11758,9 @@ app.post("/api/hambicoin/exchange", async (req, res) => {
             Number(amount);
 
 
-        // ==========================================
-        // VALIDATE AMOUNT
-        // ==========================================
+
+
+
 
         if (
             !Number.isInteger(numericAmount) ||
@@ -11700,9 +11775,9 @@ app.post("/api/hambicoin/exchange", async (req, res) => {
         }
 
 
-        // ==========================================
-        // VALIDATE DIRECTION
-        // ==========================================
+
+
+
 
         if (
             direction !== "shrek_to_hambi" &&
@@ -11717,11 +11792,11 @@ app.post("/api/hambicoin/exchange", async (req, res) => {
         }
 
 
-        // ==========================================
-        // SHREKCOINS → HAMBICOINS
-        //
-        // 100 ShrekCoins = 1 HambiCoin
-        // ==========================================
+
+
+
+
+
 
         if (
             direction === "shrek_to_hambi" &&
@@ -11736,9 +11811,9 @@ app.post("/api/hambicoin/exchange", async (req, res) => {
         }
 
 
-        // ==========================================
-        // EXCHANGE
-        // ==========================================
+
+
+
 
         const {
             data,
@@ -11774,9 +11849,9 @@ app.post("/api/hambicoin/exchange", async (req, res) => {
         }
 
 
-        // ==========================================
-        // UPDATED BALANCES
-        // ==========================================
+
+
+
 
         const balances =
             data?.[0];
@@ -12001,9 +12076,9 @@ app.post("/api/currency/transfer", async (req, res) => {
 
     try {
 
-        // ==========================================
-        // CHECK LOGIN
-        // ==========================================
+
+
+
 
         if (!req.session.user) {
 
@@ -12018,9 +12093,9 @@ app.post("/api/currency/transfer", async (req, res) => {
             req.session.user.id;
 
 
-        // ==========================================
-        // GET INPUT
-        // ==========================================
+
+
+
 
         const {
             username,
@@ -12029,9 +12104,9 @@ app.post("/api/currency/transfer", async (req, res) => {
         } = req.body;
 
 
-        // ==========================================
-        // VALIDATE USERNAME
-        // ==========================================
+
+
+
 
         if (
             !username ||
@@ -12046,9 +12121,9 @@ app.post("/api/currency/transfer", async (req, res) => {
         }
 
 
-        // ==========================================
-        // VALIDATE AMOUNT
-        // ==========================================
+
+
+
 
         const numericAmount =
             Number(amount);
@@ -12067,9 +12142,9 @@ app.post("/api/currency/transfer", async (req, res) => {
         }
 
 
-        // ==========================================
-        // VALIDATE CURRENCY
-        // ==========================================
+
+
+
 
         if (
             currency !== "shrekcoins" &&
@@ -12084,9 +12159,9 @@ app.post("/api/currency/transfer", async (req, res) => {
         }
 
 
-        // ==========================================
-        // TRANSFER
-        // ==========================================
+
+
+
 
         const {
             data,
@@ -12125,9 +12200,9 @@ app.post("/api/currency/transfer", async (req, res) => {
         }
 
 
-        // ==========================================
-        // UPDATED BALANCES
-        // ==========================================
+
+
+
 
         const balances =
             data?.[0];
@@ -12172,9 +12247,9 @@ app.post("/api/currency/transfer", async (req, res) => {
 });
 
 
-// ============================================================
-// HOUSES AND ROOMS API
-// ============================================================
+
+
+
 
 function requireHouseLogin(req, res) {
     const userId = req.session?.user?.id;
@@ -12190,9 +12265,9 @@ function requireHouseLogin(req, res) {
 }
 
 
-// ------------------------------------------------------------
-// HOUSE HELPERS
-// ------------------------------------------------------------
+
+
+
 
 async function getHouseMembership(houseId, userId) {
     if (!houseId || !userId) return null;
@@ -12308,9 +12383,9 @@ async function getHouseMembers(houseId) {
 }
 
 
-// ============================================================
-// HOUSE TYPES
-// ============================================================
+
+
+
 
 app.get("/api/houses/types", async (req, res) => {
     try {
@@ -12341,9 +12416,9 @@ app.get("/api/houses/types", async (req, res) => {
 });
 
 
-// ============================================================
-// CREATE HOUSE
-// ============================================================
+
+
+
 
 app.post("/api/houses", async (req, res) => {
     const userId = requireHouseLogin(req, res);
@@ -12387,7 +12462,7 @@ app.post("/api/houses", async (req, res) => {
             });
         }
 
-        // Create the house.
+
         const { data: house, error: houseError } = await supabase
             .from("houses")
             .insert({
@@ -12403,7 +12478,7 @@ app.post("/api/houses", async (req, res) => {
 
         if (houseError) throw houseError;
 
-        // Create the rooms.
+
         const roomCount = Math.max(
             1,
             Number(houseType.room_count || 1)
@@ -12434,7 +12509,7 @@ app.post("/api/houses", async (req, res) => {
 
         if (roomError) throw roomError;
 
-        // Add owner as a member.
+
         const { error: memberError } = await supabase
             .from("house_members")
             .insert({
@@ -12445,7 +12520,7 @@ app.post("/api/houses", async (req, res) => {
 
         if (memberError) throw memberError;
 
-        // Charge the House cost.
+
         const { data: updatedProfile, error: chargeError } =
             await supabase
                 .from("profiles")
@@ -12480,9 +12555,9 @@ app.post("/api/houses", async (req, res) => {
 });
 
 
-// ============================================================
-// LIST HOUSES
-// ============================================================
+
+
+
 
 app.get("/api/houses", async (req, res) => {
     const userId = requireHouseLogin(req, res);
@@ -12539,9 +12614,9 @@ app.get("/api/houses", async (req, res) => {
 });
 
 
-// ============================================================
-// GET SINGLE HOUSE
-// ============================================================
+
+
+
 
 app.get("/api/houses/:id", async (req, res) => {
     const userId = requireHouseLogin(req, res);
@@ -12622,16 +12697,16 @@ app.get("/api/houses/:id", async (req, res) => {
 });
 
 
-// ============================================================
-// GET SINGLE ROOM
-// ============================================================
 
 
 
 
-// ============================================================
-// USER SEARCH FOR HOUSE INVITES
-// ============================================================
+
+
+
+
+
+
 
 app.get("/api/users/search", async (req, res) => {
     const userId = requireHouseLogin(req, res);
@@ -12680,9 +12755,9 @@ app.get("/api/users/search", async (req, res) => {
 });
 
 
-// ============================================================
-// GET MY HOUSE INVITATIONS
-// ============================================================
+
+
+
 
 app.get("/api/houses/invitations", async (req, res) => {
     const userId = requireHouseLogin(req, res);
@@ -12772,9 +12847,9 @@ app.get("/api/houses/invitations", async (req, res) => {
 });
 
 
-// ============================================================
-// SEND HOUSE INVITATION
-// ============================================================
+
+
+
 
 app.post("/api/houses/:id/invite", async (req, res) => {
     const userId = requireHouseLogin(req, res);
@@ -12884,9 +12959,9 @@ app.post("/api/houses/:id/invite", async (req, res) => {
 });
 
 
-// ============================================================
-// ACCEPT / DECLINE INVITATION
-// ============================================================
+
+
+
 
 app.post(
     "/api/houses/invitations/:id/:action",
@@ -12999,23 +13074,23 @@ app.post(
     }
 );
 
-// ============================================================
-// SHREKAI API
-// Browser = model inference
-// Server = authentication + Supabase persistence
-// ============================================================
 
 
-// ------------------------------------------------------------
-// AUTH HELPER
-// ------------------------------------------------------------
+
+
+
+
+
+
+
+
 
 async function getShrekAIUser(req) {
     try {
-        // ----------------------------------------------------
-        // OPTION 1:
-        // Existing ShrekBook Express session
-        // ----------------------------------------------------
+
+
+
+
 
         if (req.session?.user?.id) {
             return {
@@ -13023,10 +13098,10 @@ async function getShrekAIUser(req) {
             };
         }
 
-        // ----------------------------------------------------
-        // OPTION 2:
-        // Supabase access token
-        // ----------------------------------------------------
+
+
+
+
 
         const authHeader = req.headers.authorization || "";
 
@@ -13065,9 +13140,9 @@ async function getShrekAIUser(req) {
 }
 
 
-// ------------------------------------------------------------
-// AUTH MIDDLEWARE
-// ------------------------------------------------------------
+
+
+
 
 async function requireShrekAIUser(req, res, next) {
     const user = await getShrekAIUser(req);
@@ -13084,12 +13159,12 @@ async function requireShrekAIUser(req, res, next) {
 }
 
 
-// ============================================================
-// POST /api/shrekai
-//
-// Saves a user/assistant conversation.
-// The browser generates the answer locally.
-// ============================================================
+
+
+
+
+
+
 
 app.post(
     "/api/shrekai",
@@ -13124,9 +13199,9 @@ app.post(
             }
 
 
-            // ------------------------------------------------
-            // Validate messages
-            // ------------------------------------------------
+
+
+
 
             const cleanMessages = messages
                 .filter(message =>
@@ -13154,9 +13229,9 @@ app.post(
             }
 
 
-            // ------------------------------------------------
-            // Find or create conversation
-            // ------------------------------------------------
+
+
+
 
             let currentConversationId = conversationId;
 
@@ -13244,12 +13319,12 @@ app.post(
             }
 
 
-            // ------------------------------------------------
-            // Get existing messages
-            //
-            // This prevents the same messages from being
-            // inserted repeatedly on every browser save.
-            // ------------------------------------------------
+
+
+
+
+
+
 
             const {
                 data: existingMessages,
@@ -13278,10 +13353,10 @@ app.post(
             }
 
 
-            // ------------------------------------------------
-            // Only insert messages that don't already exist
-            // in the same position/content sequence.
-            // ------------------------------------------------
+
+
+
+
 
             const existing = existingMessages || [];
 
@@ -13304,9 +13379,9 @@ app.post(
             }
 
 
-            // ------------------------------------------------
-            // Insert new messages
-            // ------------------------------------------------
+
+
+
 
             if (newMessages.length > 0) {
 
@@ -13329,9 +13404,9 @@ app.post(
             }
 
 
-            // ------------------------------------------------
-            // Update conversation timestamp
-            // ------------------------------------------------
+
+
+
 
             await supabase
                 .from("ai_conversations")
@@ -13375,11 +13450,11 @@ app.post(
 );
 
 
-// ============================================================
-// GET /api/shrekai/history
-//
-// Returns the user's conversations.
-// ============================================================
+
+
+
+
+
 
 app.get(
     "/api/shrekai/history",
@@ -13434,11 +13509,11 @@ app.get(
 );
 
 
-// ============================================================
-// GET /api/shrekai/history/:conversationId
-//
-// Loads one complete conversation.
-// ============================================================
+
+
+
+
+
 
 app.get(
     "/api/shrekai/history/:conversationId",
@@ -13535,9 +13610,9 @@ app.get(
 );
 
 
-// ============================================================
-// DELETE /api/shrekai/history/:conversationId
-// ============================================================
+
+
+
 
 app.delete(
     "/api/shrekai/history/:conversationId",
@@ -13592,9 +13667,9 @@ app.delete(
 );
 
 
-// ============================================================
-// GET /api/shrekai/memories
-// ============================================================
+
+
+
 
 app.get(
     "/api/shrekai/memories",
@@ -13651,9 +13726,9 @@ app.get(
 );
 
 
-// ============================================================
-// POST /api/shrekai/memories
-// ============================================================
+
+
+
 
 app.post(
     "/api/shrekai/memories",
@@ -13731,9 +13806,9 @@ app.post(
 );
 
 
-// ============================================================
-// DELETE /api/shrekai/memories/:id
-// ============================================================
+
+
+
 
 app.delete(
     "/api/shrekai/memories/:id",
@@ -13873,9 +13948,9 @@ app.put("/api/houses/:id", async (req, res) => {
 });
 
 
-// ============================================================
-// LEAVE HOUSE
-// ============================================================
+
+
+
 
 app.delete(
     "/api/houses/:id/leave",
@@ -13947,9 +14022,9 @@ app.delete(
 );
 
 
-// ============================================================
-// PROMOTE MEMBER TO ADMIN
-// ============================================================
+
+
+
 
 app.post(
     "/api/houses/:id/admins/:userId",
@@ -14045,9 +14120,9 @@ app.post(
 );
 
 
-// ============================================================
-// DEMOTE ADMIN
-// ============================================================
+
+
+
 
 app.delete(
     "/api/houses/:id/admins/:userId",
@@ -14143,9 +14218,9 @@ app.delete(
 );
 
 
-// ============================================================
-// REMOVE MEMBER
-// ============================================================
+
+
+
 
 app.delete(
     "/api/houses/:id/members/:userId",
@@ -14210,7 +14285,7 @@ app.delete(
                 });
             }
 
-            // An admin cannot remove another admin.
+
             if (
                 manager.role === "admin" &&
                 target.role === "admin"
@@ -14248,9 +14323,9 @@ app.delete(
     }
 );
 
-// ==================================================
-// START
-// ==================================================
+
+
+
 
 
 
