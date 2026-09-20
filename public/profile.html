@@ -1177,6 +1177,10 @@ async function saveProfile() {
 // UPLOAD AVATAR
 // ==================================================
 
+// ==================================================
+// UPLOAD AVATAR
+// ==================================================
+
 async function uploadAvatar() {
 
     const input =
@@ -1191,8 +1195,19 @@ async function uploadAvatar() {
         );
 
 
+    if (!input) {
+
+        console.error(
+            "AVATAR ERROR: Avatar input not found."
+        );
+
+        return;
+
+    }
+
+
     const file =
-        input.files[0];
+        input.files?.[0];
 
 
     if (!file) {
@@ -1204,6 +1219,32 @@ async function uploadAvatar() {
 
     }
 
+
+    // ==================================================
+    // VALIDATE FILE TYPE
+    // ==================================================
+
+    const allowedTypes = [
+        "image/png",
+        "image/jpeg",
+        "image/webp",
+        "image/gif"
+    ];
+
+
+    if (!allowedTypes.includes(file.type)) {
+
+        status.textContent =
+            "❌ Invalid image type. Use PNG, JPG, WEBP, or GIF.";
+
+        return;
+
+    }
+
+
+    // ==================================================
+    // VALIDATE FILE SIZE
+    // ==================================================
 
     if (
         file.size >
@@ -1222,102 +1263,123 @@ async function uploadAvatar() {
         "Uploading avatar...";
 
 
-    const reader =
-        new FileReader();
+    try {
+
+        // ==================================================
+        // CREATE MULTIPART FORM
+        // ==================================================
+
+        const formData =
+            new FormData();
 
 
-    reader.onload =
-        async function () {
+        /*
+         * IMPORTANT:
+         *
+         * The name MUST be "avatar" because the backend uses:
+         *
+         * upload.single("avatar")
+         */
 
-            try {
-
-                const base64 =
-                    reader.result
-                        .split(",")[1];
-
-
-                const response =
-                    await fetch(
-                        "/api/profile/avatar",
-                        {
-                            method: "POST",
-
-                            credentials: "include",
-
-                            headers: {
-                                "Content-Type":
-                                    "application/json"
-                            },
-
-                            body: JSON.stringify({
-
-                                fileName:
-                                    file.name,
-
-                                fileType:
-                                    file.type,
-
-                                fileData:
-                                    base64
-
-                            })
-                        }
-                    );
+        formData.append(
+            "avatar",
+            file
+        );
 
 
-                const data =
-                    await response.json();
+        // ==================================================
+        // UPLOAD
+        // ==================================================
 
+        const response =
+            await fetch(
+                "/api/profile/avatar",
+                {
+                    method: "POST",
 
-                if (!response.ok) {
+                    credentials: "include",
 
-                    throw new Error(
-                        data.error ||
-                        "Avatar upload failed."
-                    );
-
+                    body: formData
                 }
+            );
 
 
-                profileUser.avatar =
-                    data.avatar;
+        const data =
+            await response.json();
 
 
-                document.getElementById(
-                    "profile-avatar"
-                ).src =
-                    data.avatar;
+        // ==================================================
+        // HANDLE SERVER ERROR
+        // ==================================================
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                "Avatar upload failed."
+            );
+
+        }
 
 
-                status.textContent =
-                    "✅ Avatar updated!";
+        // ==================================================
+        // UPDATE LOCAL PROFILE
+        // ==================================================
+
+        if (profileUser) {
+
+            profileUser.avatar =
+                data.avatar;
+
+        }
 
 
-                input.value = "";
+        // ==================================================
+        // UPDATE AVATAR IMAGE
+        // ==================================================
+
+        const avatar =
+            document.getElementById(
+                "profile-avatar"
+            );
 
 
-            } catch (error) {
+        if (avatar) {
 
-                console.error(
-                    "AVATAR ERROR:",
-                    error
-                );
+            avatar.src =
+                data.avatar;
 
-
-                status.textContent =
-                    "❌ " +
-                    error.message;
-
-            }
-
-        };
+        }
 
 
-    reader.readAsDataURL(file);
+        // ==================================================
+        // SUCCESS
+        // ==================================================
+
+        status.textContent =
+            "✅ Avatar updated!";
+
+
+        // Clear selected file
+
+        input.value = "";
+
+
+    } catch (error) {
+
+        console.error(
+            "AVATAR ERROR:",
+            error
+        );
+
+
+        status.textContent =
+            "❌ " +
+            error.message;
+
+    }
 
 }
-
-
 
 // ==================================================
 // PROFILE POSTS
