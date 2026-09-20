@@ -21,29 +21,18 @@
 class ShrekAIWeb {
 
     constructor(options = {}) {
-
         this.modelUrl = options.modelUrl;
         this.tokenizerUrl = options.tokenizerUrl;
 
         this.session = null;
         this.tokenizer = null;
         this.backend = null;
-
         this.loaded = false;
-
-        // --------------------------------------------------------
-        // Model configuration
-        // --------------------------------------------------------
 
         this.VOCAB_SIZE = 2048;
         this.BASE_VOCAB_SIZE = 263;
         this.SUBWORD_START = 263;
-
         this.MAX_SEQ_LEN = 256;
-
-        // --------------------------------------------------------
-        // Special tokens
-        // --------------------------------------------------------
 
         this.PAD_ID = 256;
         this.EOS_ID = 257;
@@ -53,14 +42,13 @@ class ShrekAIWeb {
         this.TOOL_ID = 261;
         this.END_ID = 262;
 
-        // --------------------------------------------------------
-        // Generation defaults
-        // --------------------------------------------------------
-
         this.defaultMaxNewTokens = 180;
         this.defaultTemperature = 0.8;
         this.defaultTopP = 0.92;
         this.defaultRepetitionPenalty = 1.05;
+
+        this._reverseSubwords = null;
+        this._subwordsById = null;
     }
 
 
@@ -81,11 +69,15 @@ class ShrekAIWeb {
         }
 
         if (!this.modelUrl) {
-            throw new Error("No ShrekAI ONNX model URL was provided.");
+            throw new Error(
+                "No ShrekAI ONNX model URL was provided."
+            );
         }
 
         if (!this.tokenizerUrl) {
-            throw new Error("No ShrekAI tokenizer URL was provided.");
+            throw new Error(
+                "No ShrekAI tokenizer URL was provided."
+            );
         }
 
         console.log("[ShrekAI] Loading tokenizer...");
@@ -93,14 +85,6 @@ class ShrekAIWeb {
         await this.loadTokenizer();
 
         console.log("[ShrekAI] Tokenizer loaded.");
-
-        /*
-         * Try WebGPU first.
-         *
-         * Some browsers expose navigator.gpu but a particular ONNX
-         * graph/operator may still fail on WebGPU. Therefore WebGPU
-         * session creation itself is wrapped in a fallback.
-         */
 
         let webgpuError = null;
 
@@ -113,17 +97,20 @@ class ShrekAIWeb {
 
                 console.log("[ShrekAI] Trying WebGPU...");
 
-                this.session = await ort.InferenceSession.create(
-                    this.modelUrl,
-                    {
-                        executionProviders: ["webgpu"],
-                        graphOptimizationLevel: "all"
-                    }
-                );
+                this.session =
+                    await ort.InferenceSession.create(
+                        this.modelUrl,
+                        {
+                            executionProviders: ["webgpu"],
+                            graphOptimizationLevel: "all"
+                        }
+                    );
 
                 this.backend = "webgpu";
 
-                console.log("[ShrekAI] WebGPU backend ready.");
+                console.log(
+                    "[ShrekAI] WebGPU backend ready."
+                );
 
             } catch (error) {
 
@@ -138,27 +125,28 @@ class ShrekAIWeb {
             }
         }
 
-        /*
-         * WASM fallback.
-         */
-
         if (!this.session) {
 
             try {
 
-                console.log("[ShrekAI] Loading WASM backend...");
-
-                this.session = await ort.InferenceSession.create(
-                    this.modelUrl,
-                    {
-                        executionProviders: ["wasm"],
-                        graphOptimizationLevel: "all"
-                    }
+                console.log(
+                    "[ShrekAI] Loading WASM backend..."
                 );
+
+                this.session =
+                    await ort.InferenceSession.create(
+                        this.modelUrl,
+                        {
+                            executionProviders: ["wasm"],
+                            graphOptimizationLevel: "all"
+                        }
+                    );
 
                 this.backend = "wasm";
 
-                console.log("[ShrekAI] WASM backend ready.");
+                console.log(
+                    "[ShrekAI] WASM backend ready."
+                );
 
             } catch (wasmError) {
 
@@ -167,11 +155,19 @@ class ShrekAIWeb {
 
                 if (webgpuError) {
                     message +=
-                        ` WebGPU error: ${webgpuError.message || webgpuError}`;
+                        " WebGPU error: " +
+                        (
+                            webgpuError.message ||
+                            webgpuError
+                        );
                 }
 
                 message +=
-                    ` WASM error: ${wasmError.message || wasmError}`;
+                    " WASM error: " +
+                    (
+                        wasmError.message ||
+                        wasmError
+                    );
 
                 throw new Error(message);
             }
@@ -210,7 +206,9 @@ class ShrekAIWeb {
         let data;
 
         try {
+
             data = await response.json();
+
         } catch (error) {
 
             throw new Error(
@@ -221,18 +219,22 @@ class ShrekAIWeb {
         this.validateTokenizer(data);
 
         this.tokenizer = data;
+
+        this._reverseSubwords = null;
+        this._subwordsById = null;
     }
 
 
     validateTokenizer(tokenizer) {
 
-        if (!tokenizer || typeof tokenizer !== "object") {
-            throw new Error("Tokenizer is not a valid JSON object.");
+        if (
+            !tokenizer ||
+            typeof tokenizer !== "object"
+        ) {
+            throw new Error(
+                "Tokenizer is not a valid JSON object."
+            );
         }
-
-        /*
-         * Your custom tokenizer format.
-         */
 
         if (
             tokenizer.vocab_size !== undefined &&
@@ -251,11 +253,9 @@ class ShrekAIWeb {
             );
         }
 
-        const subwords = tokenizer.subwords;
-
         if (
-            typeof subwords !== "object" ||
-            Array.isArray(subwords)
+            typeof tokenizer.subwords !== "object" ||
+            Array.isArray(tokenizer.subwords)
         ) {
 
             throw new Error(
@@ -263,13 +263,10 @@ class ShrekAIWeb {
             );
         }
 
-        /*
-         * Make sure the special-token IDs match the model.
-         */
-
         if (tokenizer.special_tokens) {
 
-            const special = tokenizer.special_tokens;
+            const special =
+                tokenizer.special_tokens;
 
             const expected = {
                 "<|pad|>": this.PAD_ID,
@@ -281,7 +278,10 @@ class ShrekAIWeb {
                 "<|end|>": this.END_ID
             };
 
-            for (const [token, id] of Object.entries(expected)) {
+            for (
+                const [token, id]
+                of Object.entries(expected)
+            ) {
 
                 if (
                     special[token] !== undefined &&
@@ -317,14 +317,18 @@ class ShrekAIWeb {
             this.session.outputNames
         );
 
-        if (!this.session.inputNames.includes("input_ids")) {
+        if (
+            !this.session.inputNames.includes("input_ids")
+        ) {
 
             console.warn(
                 "[ShrekAI] Warning: model does not expose an input named 'input_ids'."
             );
         }
 
-        if (!this.session.outputNames.includes("logits")) {
+        if (
+            !this.session.outputNames.includes("logits")
+        ) {
 
             console.warn(
                 "[ShrekAI] Warning: model does not expose an output named 'logits'."
@@ -359,23 +363,21 @@ class ShrekAIWeb {
     }
 
 
-    /*
-     * Creates the reverse mapping:
-     *
-     * token string -> token ID
-     */
-
     getReverseSubwordTable() {
 
         if (this._reverseSubwords) {
             return this._reverseSubwords;
         }
 
-        const table = this.getSubwordTable();
+        const table =
+            this.getSubwordTable();
 
         this._reverseSubwords = new Map();
 
-        for (const [key, value] of Object.entries(table)) {
+        for (
+            const [key, value]
+            of Object.entries(table)
+        ) {
 
             const id = Number(value);
 
@@ -385,11 +387,52 @@ class ShrekAIWeb {
                 id < this.VOCAB_SIZE
             ) {
 
-                this._reverseSubwords.set(key, id);
+                this._reverseSubwords.set(
+                    key,
+                    id
+                );
             }
         }
 
         return this._reverseSubwords;
+    }
+
+
+    getSubwordById(id) {
+
+        if (!this._subwordsById) {
+
+            this._subwordsById = new Map();
+
+            const table =
+                this.getSubwordTable();
+
+            for (
+                const [token, tokenId]
+                of Object.entries(table)
+            ) {
+
+                const numericId =
+                    Number(tokenId);
+
+                if (
+                    Number.isInteger(numericId) &&
+                    numericId >= this.SUBWORD_START &&
+                    numericId < this.VOCAB_SIZE
+                ) {
+
+                    this._subwordsById.set(
+                        numericId,
+                        token
+                    );
+                }
+            }
+        }
+
+        return (
+            this._subwordsById.get(id) ??
+            null
+        );
     }
 
 
@@ -407,24 +450,6 @@ class ShrekAIWeb {
             return [];
         }
 
-        const tokens = [];
-
-        /*
-         * Split special tokens first so they cannot accidentally
-         * become ordinary text.
-         */
-
-        const specialPattern =
-            /(<\|(pad|eos|system|user|assistant|tool|end)\|>)/g;
-
-        const parts = text.split(specialPattern);
-
-        /*
-         * Because the regex contains a capture group, split()
-         * produces extra entries. We therefore process special
-         * tokens using a simpler scanner instead.
-         */
-
         return this.encodeWithScanner(text);
     }
 
@@ -434,13 +459,21 @@ class ShrekAIWeb {
         const tokens = [];
 
         const specialTokens = [
+
             ["<|assistant|>", this.ASSISTANT_ID],
+
             ["<|system|>", this.SYSTEM_ID],
+
             ["<|user|>", this.USER_ID],
+
             ["<|tool|>", this.TOOL_ID],
+
             ["<|pad|>", this.PAD_ID],
+
             ["<|eos|>", this.EOS_ID],
+
             ["<|end|>", this.END_ID]
+
         ];
 
         let position = 0;
@@ -449,13 +482,22 @@ class ShrekAIWeb {
 
             let matchedSpecial = false;
 
-            for (const [token, id] of specialTokens) {
+            for (
+                const [token, id]
+                of specialTokens
+            ) {
 
-                if (text.startsWith(token, position)) {
+                if (
+                    text.startsWith(
+                        token,
+                        position
+                    )
+                ) {
 
                     tokens.push(id);
 
-                    position += token.length;
+                    position +=
+                        token.length;
 
                     matchedSpecial = true;
 
@@ -467,18 +509,19 @@ class ShrekAIWeb {
                 continue;
             }
 
-            /*
-             * Find the next special token.
-             */
+            let nextSpecial =
+                text.length;
 
-            let nextSpecial = text.length;
+            for (
+                const [token]
+                of specialTokens
+            ) {
 
-            for (const [token] of specialTokens) {
-
-                const index = text.indexOf(
-                    token,
-                    position
-                );
+                const index =
+                    text.indexOf(
+                        token,
+                        position
+                    );
 
                 if (
                     index !== -1 &&
@@ -489,15 +532,18 @@ class ShrekAIWeb {
                 }
             }
 
-            const normalText = text.slice(
-                position,
-                nextSpecial
-            );
+            const normalText =
+                text.slice(
+                    position,
+                    nextSpecial
+                );
 
             if (normalText.length) {
 
                 tokens.push(
-                    ...this.encodeNormalText(normalText)
+                    ...this.encodeNormalText(
+                        normalText
+                    )
                 );
             }
 
@@ -515,13 +561,6 @@ class ShrekAIWeb {
         const reverseSubwords =
             this.getReverseSubwordTable();
 
-        /*
-         * Longest-match subword tokenization.
-         *
-         * This allows the custom 263-2047 vocabulary to actually
-         * be used instead of reducing everything to bytes.
-         */
-
         let position = 0;
 
         while (position < text.length) {
@@ -529,17 +568,11 @@ class ShrekAIWeb {
             let bestToken = null;
             let bestId = null;
 
-            /*
-             * Try progressively longer substrings.
-             *
-             * Limiting the search keeps browser inference from
-             * becoming ridiculously expensive.
-             */
-
-            const maxLength = Math.min(
-                32,
-                text.length - position
-            );
+            const maxLength =
+                Math.min(
+                    32,
+                    text.length - position
+                );
 
             for (
                 let length = maxLength;
@@ -554,7 +587,9 @@ class ShrekAIWeb {
                     );
 
                 const id =
-                    reverseSubwords.get(candidate);
+                    reverseSubwords.get(
+                        candidate
+                    );
 
                 if (id !== undefined) {
 
@@ -569,25 +604,19 @@ class ShrekAIWeb {
 
                 tokens.push(bestId);
 
-                position += bestToken.length;
+                position +=
+                    bestToken.length;
 
                 continue;
             }
-
-            /*
-             * No subword matched.
-             *
-             * Fall back to UTF-8 bytes.
-             *
-             * Base vocabulary:
-             * 0-255 = byte values
-             */
 
             const codePoint =
                 text.codePointAt(position);
 
             const character =
-                String.fromCodePoint(codePoint);
+                String.fromCodePoint(
+                    codePoint
+                );
 
             const bytes =
                 this.encodeUTF8(character);
@@ -596,7 +625,8 @@ class ShrekAIWeb {
                 tokens.push(byte);
             }
 
-            position += character.length;
+            position +=
+                character.length;
         }
 
         return tokens;
@@ -613,28 +643,18 @@ class ShrekAIWeb {
             return "";
         }
 
-        const subwords =
-            this.getSubwordTable();
-
         const byteValues = [];
 
         let output = "";
 
         for (const tokenId of tokenIds) {
 
-            const id = Number(tokenId);
-
-            /*
-             * Ignore padding.
-             */
+            const id =
+                Number(tokenId);
 
             if (id === this.PAD_ID) {
                 continue;
             }
-
-            /*
-             * Stop markers are not normal text.
-             */
 
             if (
                 id === this.EOS_ID ||
@@ -643,10 +663,6 @@ class ShrekAIWeb {
 
                 break;
             }
-
-            /*
-             * Special conversation markers.
-             */
 
             if (
                 id === this.SYSTEM_ID ||
@@ -658,10 +674,6 @@ class ShrekAIWeb {
                 continue;
             }
 
-            /*
-             * Base byte vocabulary.
-             */
-
             if (
                 id >= 0 &&
                 id < 256
@@ -672,22 +684,17 @@ class ShrekAIWeb {
                 continue;
             }
 
-            /*
-             * Flush pending UTF-8 bytes before a subword.
-             */
-
             if (byteValues.length) {
 
-                output += this.decodeUTF8(
-                    new Uint8Array(byteValues)
-                );
+                output +=
+                    this.decodeUTF8(
+                        new Uint8Array(
+                            byteValues
+                        )
+                    );
 
                 byteValues.length = 0;
             }
-
-            /*
-             * Subword token.
-             */
 
             if (
                 id >= this.SUBWORD_START &&
@@ -703,42 +710,17 @@ class ShrekAIWeb {
             }
         }
 
-        /*
-         * Flush final bytes.
-         */
-
         if (byteValues.length) {
 
-            output += this.decodeUTF8(
-                new Uint8Array(byteValues)
-            );
+            output +=
+                this.decodeUTF8(
+                    new Uint8Array(
+                        byteValues
+                    )
+                );
         }
 
         return output;
-    }
-
-
-    getSubwordById(id) {
-
-        const subwords =
-            this.getSubwordTable();
-
-        /*
-         * Format A:
-         *
-         * {
-         *   "hello": 263
-         * }
-         */
-
-        for (const [token, tokenId] of Object.entries(subwords)) {
-
-            if (Number(tokenId) === id) {
-                return token;
-            }
-        }
-
-        return null;
     }
 
 
@@ -761,10 +743,14 @@ class ShrekAIWeb {
             }
 
             const role =
-                String(message.role || "user");
+                String(
+                    message.role || "user"
+                );
 
             const content =
-                String(message.content ?? "");
+                String(
+                    message.content ?? ""
+                );
 
             if (role === "system") {
 
@@ -793,11 +779,6 @@ class ShrekAIWeb {
             }
         }
 
-        /*
-         * Tell the model that the next response belongs to the
-         * assistant.
-         */
-
         prompt += "<|assistant|>";
 
         return prompt;
@@ -810,16 +791,17 @@ class ShrekAIWeb {
 
     prepareContext(tokenIds) {
 
-        if (tokenIds.length <= this.MAX_SEQ_LEN) {
+        if (
+            tokenIds.length <=
+            this.MAX_SEQ_LEN
+        ) {
+
             return tokenIds;
         }
 
-        /*
-         * Keep the most recent context.
-         */
-
         return tokenIds.slice(
-            tokenIds.length - this.MAX_SEQ_LEN
+            tokenIds.length -
+            this.MAX_SEQ_LEN
         );
     }
 
@@ -831,29 +813,37 @@ class ShrekAIWeb {
     async forward(tokenIds) {
 
         if (!this.session) {
-            throw new Error("ShrekAI model is not loaded.");
+
+            throw new Error(
+                "ShrekAI model is not loaded."
+            );
         }
 
         const context =
-            this.prepareContext(tokenIds);
+            this.prepareContext(
+                tokenIds
+            );
 
         if (!context.length) {
+
             throw new Error(
                 "Cannot run the model with an empty input."
             );
         }
 
-        /*
-         * Int64 is used because token IDs are integer indices and
-         * most PyTorch-exported language models expect int64.
-         */
+        const input =
+            new BigInt64Array(
+                context.length
+            );
 
-        const input = new BigInt64Array(
-            context.length
-        );
+        for (
+            let i = 0;
+            i < context.length;
+            i++
+        ) {
 
-        for (let i = 0; i < context.length; i++) {
-            input[i] = BigInt(context[i]);
+            input[i] =
+                BigInt(context[i]);
         }
 
         const inputTensor =
@@ -868,7 +858,9 @@ class ShrekAIWeb {
         };
 
         const results =
-            await this.session.run(feeds);
+            await this.session.run(
+                feeds
+            );
 
         if (!results.logits) {
 
@@ -888,7 +880,10 @@ class ShrekAIWeb {
     getLastLogits(logitsTensor) {
 
         if (!logitsTensor) {
-            throw new Error("Missing logits tensor.");
+
+            throw new Error(
+                "Missing logits tensor."
+            );
         }
 
         const data =
@@ -897,41 +892,36 @@ class ShrekAIWeb {
         const dims =
             logitsTensor.dims;
 
-        if (!dims || dims.length < 2) {
+        if (
+            !dims ||
+            dims.length < 2
+        ) {
 
             throw new Error(
                 `Unexpected logits shape: ${JSON.stringify(dims)}`
             );
         }
 
-        /*
-         * Expected:
-         *
-         * [batch, sequence, vocab]
-         *
-         * Usually:
-         * [1, sequence, 2048]
-         */
-
         const vocabSize =
             dims[dims.length - 1];
 
-        if (vocabSize !== this.VOCAB_SIZE) {
+        if (
+            vocabSize !==
+            this.VOCAB_SIZE
+        ) {
 
             throw new Error(
                 `Model vocabulary mismatch. Expected ${this.VOCAB_SIZE}, got ${vocabSize}.`
             );
         }
 
-        const elementsPerPosition =
-            vocabSize;
-
         const lastOffset =
-            data.length - elementsPerPosition;
+            data.length -
+            vocabSize;
 
         return data.slice(
             lastOffset,
-            lastOffset + elementsPerPosition
+            lastOffset + vocabSize
         );
     }
 
@@ -940,7 +930,10 @@ class ShrekAIWeb {
        SOFTMAX
        ============================================================ */
 
-    softmax(logits, temperature = 1.0) {
+    softmax(
+        logits,
+        temperature = 1.0
+    ) {
 
         const safeTemperature =
             Math.max(
@@ -949,11 +942,18 @@ class ShrekAIWeb {
             );
 
         const values =
-            new Float64Array(logits.length);
+            new Float64Array(
+                logits.length
+            );
 
-        let maxLogit = -Infinity;
+        let maxLogit =
+            -Infinity;
 
-        for (let i = 0; i < logits.length; i++) {
+        for (
+            let i = 0;
+            i < logits.length;
+            i++
+        ) {
 
             const value =
                 Number(logits[i]) /
@@ -961,17 +961,28 @@ class ShrekAIWeb {
 
             values[i] = value;
 
-            if (value > maxLogit) {
+            if (
+                value >
+                maxLogit
+            ) {
+
                 maxLogit = value;
             }
         }
 
         let total = 0;
 
-        for (let i = 0; i < values.length; i++) {
+        for (
+            let i = 0;
+            i < values.length;
+            i++
+        ) {
 
             values[i] =
-                Math.exp(values[i] - maxLogit);
+                Math.exp(
+                    values[i] -
+                    maxLogit
+                );
 
             total += values[i];
         }
@@ -981,20 +992,24 @@ class ShrekAIWeb {
             total <= 0
         ) {
 
-            /*
-             * Emergency uniform distribution.
-             */
-
             const probability =
                 1 / values.length;
 
-            values.fill(probability);
+            values.fill(
+                probability
+            );
 
             return values;
         }
 
-        for (let i = 0; i < values.length; i++) {
-            values[i] /= total;
+        for (
+            let i = 0;
+            i < values.length;
+            i++
+        ) {
+
+            values[i] /=
+                total;
         }
 
         return values;
@@ -1012,7 +1027,9 @@ class ShrekAIWeb {
     ) {
 
         const penalty =
-            Number(repetitionPenalty);
+            Number(
+                repetitionPenalty
+            );
 
         if (
             !Number.isFinite(penalty) ||
@@ -1023,7 +1040,9 @@ class ShrekAIWeb {
         }
 
         const seen =
-            new Set(generatedTokens);
+            new Set(
+                generatedTokens
+            );
 
         for (const token of seen) {
 
@@ -1031,23 +1050,24 @@ class ShrekAIWeb {
                 token < 0 ||
                 token >= logits.length
             ) {
+
                 continue;
             }
 
             const value =
-                Number(logits[token]);
-
-            /*
-             * Standard repetition-penalty behavior:
-             *
-             * positive -> divide
-             * negative -> multiply
-             */
+                Number(
+                    logits[token]
+                );
 
             if (value > 0) {
-                logits[token] = value / penalty;
+
+                logits[token] =
+                    value / penalty;
+
             } else {
-                logits[token] = value * penalty;
+
+                logits[token] =
+                    value * penalty;
             }
         }
     }
@@ -1066,7 +1086,9 @@ class ShrekAIWeb {
     ) {
 
         const adjusted =
-            Float64Array.from(logits);
+            Float64Array.from(
+                logits
+            );
 
         this.applyRepetitionPenalty(
             adjusted,
@@ -1092,7 +1114,9 @@ class ShrekAIWeb {
                 probabilities[tokenId];
 
             if (
-                Number.isFinite(probability) &&
+                Number.isFinite(
+                    probability
+                ) &&
                 probability > 0
             ) {
 
@@ -1109,7 +1133,8 @@ class ShrekAIWeb {
 
         candidates.sort(
             (a, b) =>
-                b.probability - a.probability
+                b.probability -
+                a.probability
         );
 
         const safeTopP =
@@ -1125,21 +1150,32 @@ class ShrekAIWeb {
 
         const filtered = [];
 
-        for (const candidate of candidates) {
+        for (
+            const candidate
+            of candidates
+        ) {
 
-            filtered.push(candidate);
+            filtered.push(
+                candidate
+            );
 
-            cumulative += candidate.probability;
+            cumulative +=
+                candidate.probability;
 
-            if (cumulative >= safeTopP) {
+            if (
+                cumulative >=
+                safeTopP
+            ) {
+
                 break;
             }
         }
 
-        let total =
+        const total =
             filtered.reduce(
                 (sum, item) =>
-                    sum + item.probability,
+                    sum +
+                    item.probability,
                 0
             );
 
@@ -1152,13 +1188,19 @@ class ShrekAIWeb {
         }
 
         let random =
-            Math.random() * total;
+            Math.random() *
+            total;
 
-        for (const candidate of filtered) {
+        for (
+            const candidate
+            of filtered
+        ) {
 
-            random -= candidate.probability;
+            random -=
+                candidate.probability;
 
             if (random <= 0) {
+
                 return candidate.tokenId;
             }
         }
@@ -1183,6 +1225,7 @@ class ShrekAIWeb {
         }
 
         if (!Array.isArray(messages)) {
+
             throw new Error(
                 "ShrekAI.generate() expects an array of messages."
             );
@@ -1218,25 +1261,18 @@ class ShrekAIWeb {
                 this.defaultRepetitionPenalty
             );
 
-        /*
-         * Build the complete conversation prompt.
-         */
-
         const prompt =
-            this.buildPrompt(messages);
+            this.buildPrompt(
+                messages
+            );
 
         let tokenIds =
             this.encode(prompt);
 
-        /*
-         * We need room for generated tokens.
-         *
-         * Since the model has a 256-token context, keep the
-         * prompt inside that context.
-         */
-
         tokenIds =
-            this.prepareContext(tokenIds);
+            this.prepareContext(
+                tokenIds
+            );
 
         if (!tokenIds.length) {
 
@@ -1245,14 +1281,8 @@ class ShrekAIWeb {
             );
         }
 
-        /*
-         * Track only newly generated tokens for repetition
-         * penalty.
-         */
-
         const generatedTokens = [];
-
-        let outputTokens = [];
+        const outputTokens = [];
 
         for (
             let step = 0;
@@ -1260,18 +1290,20 @@ class ShrekAIWeb {
             step++
         ) {
 
-            /*
-             * Prevent the context from exceeding 256 tokens.
-             */
-
             const context =
-                this.prepareContext(tokenIds);
+                this.prepareContext(
+                    tokenIds
+                );
 
             const logitsTensor =
-                await this.forward(context);
+                await this.forward(
+                    context
+                );
 
             const logits =
-                this.getLastLogits(logitsTensor);
+                this.getLastLogits(
+                    logitsTensor
+                );
 
             const nextToken =
                 this.sampleTopP(
@@ -1282,54 +1314,61 @@ class ShrekAIWeb {
                     repetitionPenalty
                 );
 
-            /*
-             * Stop generation.
-             */
-
             if (
-                nextToken === this.EOS_ID ||
-                nextToken === this.END_ID
+                nextToken ===
+                this.EOS_ID ||
+                nextToken ===
+                this.END_ID
             ) {
 
                 break;
             }
 
-            /*
-             * Do not expose structural conversation tokens as
-             * assistant text.
-             */
-
             if (
-                nextToken === this.PAD_ID ||
-                nextToken === this.SYSTEM_ID ||
-                nextToken === this.USER_ID ||
-                nextToken === this.ASSISTANT_ID ||
-                nextToken === this.TOOL_ID
+                nextToken ===
+                this.PAD_ID ||
+                nextToken ===
+                this.SYSTEM_ID ||
+                nextToken ===
+                this.USER_ID ||
+                nextToken ===
+                this.ASSISTANT_ID ||
+                nextToken ===
+                this.TOOL_ID
             ) {
 
                 break;
             }
 
-            tokenIds.push(nextToken);
+            tokenIds.push(
+                nextToken
+            );
 
-            generatedTokens.push(nextToken);
-            outputTokens.push(nextToken);
+            generatedTokens.push(
+                nextToken
+            );
 
-            /*
-             * Yield occasionally so the browser UI does not get
-             * completely locked during long generation.
-             */
+            outputTokens.push(
+                nextToken
+            );
 
-            if (step % 4 === 0) {
+            if (
+                step % 4 === 0
+            ) {
 
                 await new Promise(
                     resolve =>
-                        setTimeout(resolve, 0)
+                        setTimeout(
+                            resolve,
+                            0
+                        )
                 );
             }
         }
 
-        return this.decode(outputTokens).trim();
+        return this.decode(
+            outputTokens
+        ).trim();
     }
 
 
@@ -1340,12 +1379,24 @@ class ShrekAIWeb {
     getStatus() {
 
         return {
-            loaded: this.loaded,
-            backend: this.backend,
-            vocabSize: this.VOCAB_SIZE,
-            contextLength: this.MAX_SEQ_LEN,
-            modelUrl: this.modelUrl,
-            tokenizerUrl: this.tokenizerUrl
+
+            loaded:
+                this.loaded,
+
+            backend:
+                this.backend,
+
+            vocabSize:
+                this.VOCAB_SIZE,
+
+            contextLength:
+                this.MAX_SEQ_LEN,
+
+            modelUrl:
+                this.modelUrl,
+
+            tokenizerUrl:
+                this.tokenizerUrl
         };
     }
 }
@@ -1353,7 +1404,7 @@ class ShrekAIWeb {
 
 /* ================================================================
    GLOBAL EXPORT
-   ================================================================ */
+   ================================================================= */
 
 window.ShrekAIWeb = ShrekAIWeb;
 
