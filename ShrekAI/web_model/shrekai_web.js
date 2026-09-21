@@ -1,3 +1,5 @@
+console.log("🔥🔥🔥 SHREKAI_WEB.JS STARTED EXECUTING 🔥🔥🔥");
+
 /* ============================================================
    ShrekAI Web Runtime
    Browser-side ONNX Runtime Web inference
