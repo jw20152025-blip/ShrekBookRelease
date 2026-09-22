@@ -297,7 +297,10 @@ Use it only when it is relevant:
         );
 
 
-        // Already loaded.
+        // ========================================================
+        // ALREADY LOADED
+        // ========================================================
+
         if (
             typeof window.ShrekAIWeb === "function"
         ) {
@@ -310,57 +313,45 @@ Use it only when it is relevant:
         }
 
 
+        // ========================================================
+        // REMOVE ANY OLD / FAILED SCRIPT TAG
+        // ========================================================
+
+        const oldScripts =
+            document.querySelectorAll(
+                'script[src*="/ShrekAI/web_model/shrekai_web.js"]'
+            );
+
+
         console.log(
-            "[ShrekAI][Runtime] Loading:",
+            "[ShrekAI][Runtime] Existing runtime script tags:",
+            oldScripts.length
+        );
+
+
+        for (const script of oldScripts) {
+
+            console.log(
+                "[ShrekAI][Runtime] Removing old runtime script:",
+                script.src
+            );
+
+            script.remove();
+        }
+
+
+        // ========================================================
+        // CREATE FRESH SCRIPT
+        // ========================================================
+
+        console.log(
+            "[ShrekAI][Runtime] Loading fresh runtime:",
             RUNTIME_URL
         );
 
 
         await new Promise(
             (resolve, reject) => {
-
-                const existing =
-                    document.querySelector(
-                        `script[src="${RUNTIME_URL}"]`
-                    );
-
-
-                if (existing) {
-
-                    console.log(
-                        "[ShrekAI][Runtime] Script tag already exists. Waiting..."
-                    );
-
-                    existing.addEventListener(
-                        "load",
-                        resolve,
-                        { once: true }
-                    );
-
-                    existing.addEventListener(
-                        "error",
-                        () => reject(
-                            new Error(
-                                `Failed to load ${RUNTIME_URL}`
-                            )
-                        ),
-                        { once: true }
-                    );
-
-
-                    // It may have loaded before
-                    // the listeners were attached.
-                    if (
-                        typeof window.ShrekAIWeb ===
-                        "function"
-                    ) {
-
-                        resolve();
-                    }
-
-                    return;
-                }
-
 
                 const script =
                     document.createElement("script");
@@ -376,18 +367,23 @@ Use it only when it is relevant:
                 script.onload = () => {
 
                     console.log(
-                        "[ShrekAI][Runtime] Script loaded."
+                        "[ShrekAI][Runtime] ✅ Runtime script loaded."
                     );
 
                     resolve();
                 };
 
 
-                script.onerror = () => {
+                script.onerror = (event) => {
+
+                    console.error(
+                        "[ShrekAI][Runtime] ❌ Runtime script FAILED to load.",
+                        event
+                    );
 
                     reject(
                         new Error(
-                            `Could not load ShrekAI runtime: ${RUNTIME_URL}`
+                            `Failed to load ShrekAI runtime: ${RUNTIME_URL}`
                         )
                     );
                 };
@@ -398,9 +394,24 @@ Use it only when it is relevant:
         );
 
 
+        // ========================================================
+        // VERIFY EXPORT
+        // ========================================================
+
         console.log(
-            "[ShrekAI][Runtime] After loading:",
+            "[ShrekAI][Runtime] Checking export after script load..."
+        );
+
+
+        console.log(
+            "[ShrekAI][Runtime] window.ShrekAIWeb:",
             window.ShrekAIWeb
+        );
+
+
+        console.log(
+            "[ShrekAI][Runtime] typeof window.ShrekAIWeb:",
+            typeof window.ShrekAIWeb
         );
 
 
@@ -409,16 +420,15 @@ Use it only when it is relevant:
         ) {
 
             throw new Error(
-                "shrekai_web.js loaded, but did not create window.ShrekAIWeb."
+                "shrekai_web.js loaded, but did not export window.ShrekAIWeb."
             );
         }
 
 
         console.log(
-            "[ShrekAI][Runtime] ✅ ShrekAIWeb is available."
+            "[ShrekAI][Runtime] 🎉 ShrekAIWeb is available."
         );
     }
-
 
     // ========================================================
     // LOAD MEMORIES
