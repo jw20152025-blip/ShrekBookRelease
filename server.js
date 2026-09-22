@@ -141,7 +141,12 @@ app.use(
     })
 );
 
-
+app.use(
+    "/ShrekAI",
+    express.static(
+        path.join(__dirname, "ShrekAI")
+    )
+);
 async function awardShrekCoins(
     userId,
     amount,
@@ -4726,7 +4731,7 @@ app.get("/api/leaderboard", async (req, res) => {
         }
 
 
-
+        const skibidi = "skibidi";
 
         const postCounts = {};
 
