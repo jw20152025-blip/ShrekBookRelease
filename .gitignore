@@ -6,3 +6,7 @@ __pycache__/
 ShrekAI/checkpoints/latest.pt.backup
 ShrekAI/checkpoints/latest.pt
 *.pt
+ShrekAI/web_model/shrekai.onnx
+ShrekAI/web_model/shrekai.onnx
+ShrekAI/web_model/shrekai.onnx
+ShrekAI/web_model/shrekai.onnx
