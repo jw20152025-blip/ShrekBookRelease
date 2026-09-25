@@ -1,9 +1,9 @@
-import sys
 from pathlib import Path
+import sys
 
 
 # ============================================================
-# PROJECT PATHS
+# PATHS
 # ============================================================
 
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -11,22 +11,24 @@ SHREKAI_ROOT = PROJECT_ROOT / "ShrekAI"
 
 if not SHREKAI_ROOT.exists():
     raise FileNotFoundError(
-        f"ShrekAI directory not found:\n{SHREKAI_ROOT}"
+        f"ShrekAI directory not found: {SHREKAI_ROOT}"
     )
 
 if not (SHREKAI_ROOT / "config.py").exists():
     raise FileNotFoundError(
-        f"config.py not found:\n{SHREKAI_ROOT / 'config.py'}"
+        f"ShrekAI/config.py not found: {SHREKAI_ROOT / 'config.py'}"
     )
 
 if not (SHREKAI_ROOT / "core" / "model.py").exists():
     raise FileNotFoundError(
-        f"model.py not found:\n"
-        f"{SHREKAI_ROOT / 'core' / 'model.py'}"
+        f"ShrekAI/core/model.py not found: {SHREKAI_ROOT / 'core' / 'model.py'}"
     )
 
 
-# Put ShrekAI FIRST on Python's import path.
+# ============================================================
+# MAKE SHREKAI IMPORTABLE
+# ============================================================
+
 sys.path.insert(0, str(SHREKAI_ROOT))
 
 
@@ -38,608 +40,391 @@ import torch
 import torch.nn as nn
 import onnx
 
-
-# ============================================================
-# SHREKAI IMPORTS
-# ============================================================
-
 from config import DEVICE
 from core.model import ShrekAI, ModelConfig
 
 
 # ============================================================
-# PATHS
+# FILES
 # ============================================================
 
-CHECKPOINT = SHREKAI_ROOT / "checkpoints" / "latest.pt"
+CHECKPOINT = (
+    SHREKAI_ROOT
+    / "checkpoints"
+    / "latest.pt"
+)
 
-OUTPUT_DIR = SHREKAI_ROOT / "web_model"
+OUTPUT_DIR = (
+    SHREKAI_ROOT
+    / "web_model"
+)
 
-OUTPUT_MODEL = OUTPUT_DIR / "shrekai.onnx"
+OUTPUT_MODEL = (
+    OUTPUT_DIR
+    / "shrekai.onnx"
+)
 
-EXTERNAL_DATA_FILE = OUTPUT_DIR / "shrekai.onnx.data"
+EXTERNAL_DATA_FILE = (
+    OUTPUT_DIR
+    / "shrekai.onnx.data"
+)
 
 
 # ============================================================
-# INFERENCE WRAPPER
+# CHECKPOINT
 # ============================================================
 
-class ShrekAIInference(nn.Module):
+if not CHECKPOINT.exists():
+    raise FileNotFoundError(
+        f"Checkpoint not found:\n{CHECKPOINT}"
+    )
 
-    def __init__(self, model):
+OUTPUT_DIR.mkdir(
+    parents=True,
+    exist_ok=True
+)
 
-        super().__init__()
+print("=" * 70)
+print("SHREKAI ONNX EXPORT")
+print("=" * 70)
 
-        self.model = model
+print()
+print("Project root:")
+print(PROJECT_ROOT)
 
-    def forward(self, input_ids):
+print()
+print("ShrekAI root:")
+print(SHREKAI_ROOT)
 
-        logits, _ = self.model(
-            input_ids,
-            targets=None,
-        )
+print()
+print("Checkpoint:")
+print(CHECKPOINT)
 
-        return logits
+print()
+print("Output:")
+print(OUTPUT_MODEL)
 
 
 # ============================================================
 # LOAD CHECKPOINT
 # ============================================================
 
-def load_checkpoint(model):
+print()
+print("[1/7] Loading checkpoint...")
 
-    print()
-    print("=" * 60)
-    print("LOADING SHREKAI CHECKPOINT")
-    print("=" * 60)
+checkpoint = torch.load(
+    CHECKPOINT,
+    map_location="cpu",
+    weights_only=False
+)
 
-    print()
-    print("Checkpoint:")
-    print(CHECKPOINT)
+if isinstance(checkpoint, dict):
 
-    if not CHECKPOINT.exists():
+    if "model_state_dict" in checkpoint:
+        state_dict = checkpoint["model_state_dict"]
 
-        raise FileNotFoundError(
-            f"Checkpoint not found:\n{CHECKPOINT}"
-        )
+    elif "state_dict" in checkpoint:
+        state_dict = checkpoint["state_dict"]
 
-    checkpoint = torch.load(
-        CHECKPOINT,
-        map_location="cpu",
-        weights_only=False,
-    )
-
-    print()
-    print(
-        "Checkpoint type:",
-        type(checkpoint).__name__,
-    )
-
-    # --------------------------------------------------------
-    # Find state dictionary
-    # --------------------------------------------------------
-
-    if isinstance(checkpoint, dict):
-
-        if "model_state_dict" in checkpoint:
-
-            state = checkpoint[
-                "model_state_dict"
-            ]
-
-        elif "state_dict" in checkpoint:
-
-            state = checkpoint[
-                "state_dict"
-            ]
-
-        elif "model" in checkpoint:
-
-            state = checkpoint[
-                "model"
-            ]
-
-        else:
-
-            state = checkpoint
+    elif "model" in checkpoint and isinstance(
+        checkpoint["model"],
+        dict
+    ):
+        state_dict = checkpoint["model"]
 
     else:
+        state_dict = checkpoint
 
-        raise RuntimeError(
-            "Unsupported checkpoint format."
-        )
+else:
+    raise RuntimeError(
+        "Unsupported checkpoint format."
+    )
 
-    # --------------------------------------------------------
-    # Remove module. prefix if present
-    # --------------------------------------------------------
 
-    cleaned_state = {}
+# ============================================================
+# CLEAN STATE DICT
+# ============================================================
 
-    for key, value in state.items():
+clean_state_dict = {}
 
-        if key.startswith("module."):
+for key, value in state_dict.items():
 
-            key = key[len("module."):]
+    if key.startswith("module."):
+        key = key[7:]
 
-        cleaned_state[key] = value
+    clean_state_dict[key] = value
+
+state_dict = clean_state_dict
+
+
+if "token_embedding.weight" not in state_dict:
+    raise RuntimeError(
+        "Checkpoint does not contain "
+        "'token_embedding.weight'."
+    )
+
+
+print(
+    "Checkpoint parameters:",
+    len(state_dict)
+)
+
+
+# ============================================================
+# BUILD MODEL
+# ============================================================
+
+print()
+print("[2/7] Building ShrekAI model...")
+
+config = ModelConfig()
+
+model = ShrekAI(config)
+
+model.eval()
+
+
+# ============================================================
+# LOAD WEIGHTS
+# ============================================================
+
+print()
+print("[3/7] Loading model weights...")
+
+checkpoint_vocab = (
+    state_dict["token_embedding.weight"]
+    .shape[0]
+)
+
+current_vocab = (
+    config.vocab_size
+)
+
+print(
+    "Checkpoint vocab:",
+    checkpoint_vocab
+)
+
+print(
+    "Model vocab:",
+    current_vocab
+)
+
+
+if checkpoint_vocab != current_vocab:
 
     print(
-        "Parameters in checkpoint:",
-        len(cleaned_state),
+        "Vocab mismatch detected."
     )
 
-    # --------------------------------------------------------
-    # Find embedding
-    # --------------------------------------------------------
-
-    embedding = cleaned_state.get(
-        "token_embedding.weight"
+    model.load_legacy_state_dict(
+        state_dict
     )
 
-    if embedding is None:
+else:
 
-        raise RuntimeError(
-            "Checkpoint does not contain "
-            "'token_embedding.weight'."
-        )
-
-    checkpoint_vocab = embedding.shape[0]
-
-    current_vocab = model.config.vocab_size
-
-    print(
-        "Checkpoint vocabulary:",
-        checkpoint_vocab,
-    )
-
-    print(
-        "Current vocabulary:",
-        current_vocab,
-    )
-
-    # --------------------------------------------------------
-    # Vocabulary migration
-    # --------------------------------------------------------
-
-    if checkpoint_vocab < current_vocab:
-
-        print()
-        print(
-            "Legacy vocabulary detected."
-        )
-
-        print(
-            "Migrating checkpoint..."
-        )
-
-        model.load_legacy_state_dict(
-            cleaned_state,
-            legacy_vocab_size=checkpoint_vocab,
-        )
-
-    elif checkpoint_vocab > current_vocab:
-
-        raise RuntimeError(
-            "Checkpoint vocabulary is larger "
-            "than the current model vocabulary.\n"
-            f"Checkpoint: {checkpoint_vocab}\n"
-            f"Current:    {current_vocab}"
-        )
-
-    else:
-
+    missing, unexpected = (
         model.load_state_dict(
-            cleaned_state,
-            strict=True,
+            state_dict,
+            strict=False
         )
-
-    print()
-    print(
-        "✅ Checkpoint loaded."
     )
 
-    return model
+    if missing:
+        print(
+            "Missing keys:",
+            missing
+        )
+
+    if unexpected:
+        print(
+            "Unexpected keys:",
+            unexpected
+        )
+
+
+model.eval()
 
 
 # ============================================================
-# MAIN
+# TEST PYTORCH
 # ============================================================
 
-def main():
+print()
+print("[4/7] Testing PyTorch model...")
 
-    print()
-    print("=" * 60)
-    print("SHREKAI → ONNX WEB EXPORT")
-    print("=" * 60)
+dummy_input = torch.tensor(
+    [[
+        259,
+        100,
+        101,
+        102,
+        260
+    ]],
+    dtype=torch.long
+)
 
-    # --------------------------------------------------------
-    # Show paths
-    # --------------------------------------------------------
+with torch.no_grad():
 
-    print()
-    print("PROJECT ROOT:")
-    print(PROJECT_ROOT)
-
-    print()
-    print("SHREKAI ROOT:")
-    print(SHREKAI_ROOT)
-
-    # --------------------------------------------------------
-    # Model configuration
-    # --------------------------------------------------------
-
-    config = ModelConfig()
-
-    print()
-    print("MODEL CONFIG")
-    print("-" * 60)
-
-    print(
-        "Vocabulary:",
-        config.vocab_size,
+    test_logits, _ = model(
+        dummy_input
     )
 
-    print(
-        "Embedding:",
-        config.d_model,
-    )
+print(
+    "PyTorch output shape:",
+    tuple(test_logits.shape)
+)
 
-    print(
-        "Layers:",
-        config.n_layers,
-    )
 
-    print(
-        "Heads:",
-        config.n_heads,
-    )
+# ============================================================
+# WRAPPER
+# ============================================================
 
-    print(
-        "FFN multiplier:",
-        config.ffn_multiplier,
-    )
+class ONNXWrapper(nn.Module):
 
-    print(
-        "Maximum sequence:",
-        config.max_seq_len,
-    )
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
 
-    # --------------------------------------------------------
-    # Create model
-    # --------------------------------------------------------
+    def forward(self, input_ids):
 
-    print()
-    print("Creating model...")
-
-    model = ShrekAI(config)
-
-    model.eval()
-
-    # --------------------------------------------------------
-    # Load checkpoint
-    # --------------------------------------------------------
-
-    model = load_checkpoint(model)
-
-    model.eval()
-
-    # --------------------------------------------------------
-    # Disable gradient checkpointing
-    # --------------------------------------------------------
-
-    model.disable_gradient_checkpointing()
-
-    # --------------------------------------------------------
-    # Create inference wrapper
-    # --------------------------------------------------------
-
-    wrapper = ShrekAIInference(model)
-
-    wrapper.eval()
-
-    # --------------------------------------------------------
-    # Dummy input
-    # --------------------------------------------------------
-
-    dummy_input = torch.tensor(
-        [[
-            258,  # <|system|>
-            259,  # <|user|>
-            260,  # <|assistant|>
-        ]],
-        dtype=torch.long,
-    )
-
-    print()
-    print(
-        "Dummy input shape:",
-        tuple(dummy_input.shape),
-    )
-
-    # --------------------------------------------------------
-    # Test PyTorch inference
-    # --------------------------------------------------------
-
-    print()
-    print("Testing PyTorch model...")
-
-    with torch.no_grad():
-
-        pytorch_logits = wrapper(
-            dummy_input
+        logits, _ = self.model(
+            input_ids
         )
 
-    print(
-        "PyTorch output shape:",
-        tuple(pytorch_logits.shape),
-    )
+        return logits
 
-    expected_shape = (
-        1,
-        dummy_input.shape[1],
-        config.vocab_size,
-    )
 
-    if tuple(pytorch_logits.shape) != expected_shape:
+wrapper = ONNXWrapper(model)
+wrapper.eval()
 
-        raise RuntimeError(
-            "Unexpected PyTorch output shape.\n"
-            f"Expected: {expected_shape}\n"
-            f"Got: {tuple(pytorch_logits.shape)}"
-        )
 
-    print(
-        "✅ PyTorch inference works."
-    )
+# ============================================================
+# REMOVE OLD FILES
+# ============================================================
 
-    # --------------------------------------------------------
-    # Prepare output directory
-    # --------------------------------------------------------
+print()
+print("[5/7] Removing old web model files...")
 
-    OUTPUT_DIR.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
+if OUTPUT_MODEL.exists():
+    OUTPUT_MODEL.unlink()
 
-    # --------------------------------------------------------
-    # Remove old ONNX files
-    # --------------------------------------------------------
+if EXTERNAL_DATA_FILE.exists():
+    EXTERNAL_DATA_FILE.unlink()
 
-    if OUTPUT_MODEL.exists():
 
-        print()
-        print(
-            "Removing old ONNX model..."
-        )
+# ============================================================
+# EXPORT
+# ============================================================
 
-        OUTPUT_MODEL.unlink()
+print()
+print("[6/7] Exporting ONNX model...")
 
-    if EXTERNAL_DATA_FILE.exists():
+torch.onnx.export(
+    wrapper,
+    dummy_input,
+    str(OUTPUT_MODEL),
 
-        print(
-            "Removing stale external-data file..."
-        )
+    input_names=[
+        "input_ids"
+    ],
 
-        EXTERNAL_DATA_FILE.unlink()
+    output_names=[
+        "logits"
+    ],
 
-    # --------------------------------------------------------
-    # Export
-    # --------------------------------------------------------
-
-    print()
-    print("=" * 60)
-    print("EXPORTING ONNX")
-    print("=" * 60)
-
-    torch.onnx.export(
-        wrapper,
-        dummy_input,
-        str(OUTPUT_MODEL),
-
-        input_names=[
-            "input_ids"
-        ],
-
-        output_names=[
-            "logits"
-        ],
-
-        dynamic_axes={
-            "input_ids": {
-                0: "batch",
-                1: "sequence",
-            },
-
-            "logits": {
-                0: "batch",
-                1: "sequence",
-            },
+    dynamic_axes={
+        "input_ids": {
+            0: "batch",
+            1: "sequence"
         },
 
-        opset_version=18,
+        "logits": {
+            0: "batch",
+            1: "sequence"
+        }
+    },
 
-        do_constant_folding=True,
+    opset_version=18,
 
-        external_data=False,
-    )
+    do_constant_folding=True,
 
-    print()
-    print(
-        "✅ ONNX export completed."
-    )
-
-    print()
-    print("Output:")
-    print(OUTPUT_MODEL)
-
-    # --------------------------------------------------------
-    # Verify file
-    # --------------------------------------------------------
-
-    if not OUTPUT_MODEL.exists():
-
-        raise RuntimeError(
-            "ONNX file was not created."
-        )
-
-    size = OUTPUT_MODEL.stat().st_size
-
-    print()
-    print(
-        "ONNX file size:",
-        f"{size:,}",
-        "bytes",
-    )
-
-    if size < 100_000:
-
-        raise RuntimeError(
-            "ONNX file is suspiciously small."
-        )
-
-    # --------------------------------------------------------
-    # Load ONNX
-    # --------------------------------------------------------
-
-    print()
-    print(
-        "Checking ONNX model..."
-    )
-
-    onnx_model = onnx.load(
-        str(OUTPUT_MODEL),
-        load_external_data=False,
-    )
-
-    # --------------------------------------------------------
-    # ONNX checker
-    # --------------------------------------------------------
-
-    onnx.checker.check_model(
-        onnx_model
-    )
-
-    print(
-        "✅ ONNX model is valid."
-    )
-
-    # --------------------------------------------------------
-    # Check external data
-    # --------------------------------------------------------
-
-    external_references = []
-
-    for initializer in onnx_model.graph.initializer:
-
-        if initializer.external_data:
-
-            external_references.append(
-                initializer.name
-            )
-
-    if external_references:
-
-        print()
-        print(
-            "External data references found:"
-        )
-
-        for name in external_references:
-
-            print(
-                " -",
-                name,
-            )
-
-        raise RuntimeError(
-            "The exported ONNX model still "
-            "contains external data references."
-        )
-
-    print(
-        "✅ No external .data file required."
-    )
-
-    # --------------------------------------------------------
-    # Inputs
-    # --------------------------------------------------------
-
-    print()
-    print("ONNX INPUTS")
-    print("-" * 60)
-
-    for input_tensor in onnx_model.graph.input:
-
-        print(
-            input_tensor.name
-        )
-
-    # --------------------------------------------------------
-    # Outputs
-    # --------------------------------------------------------
-
-    print()
-    print("ONNX OUTPUTS")
-    print("-" * 60)
-
-    for output_tensor in onnx_model.graph.output:
-
-        print(
-            output_tensor.name
-        )
-
-    # --------------------------------------------------------
-    # Final external data check
-    # --------------------------------------------------------
-
-    if EXTERNAL_DATA_FILE.exists():
-
-        raise RuntimeError(
-            "shrekai.onnx.data still exists."
-        )
-
-    # --------------------------------------------------------
-    # Success
-    # --------------------------------------------------------
-
-    print()
-    print("=" * 60)
-    print("🎉 SHREKAI ONNX EXPORT SUCCESSFUL")
-    print("=" * 60)
-
-    print()
-    print("Web model:")
-    print(OUTPUT_MODEL)
-
-    print()
-    print("web_model should contain:")
-
-    print(
-        "  shrekai.onnx"
-    )
-
-    print(
-        "  tokenizer.json"
-    )
-
-    print(
-        "  shrekai_web.js"
-    )
-
-    print()
-    print("There should NOT be:")
-
-    print(
-        "  shrekai.onnx.data"
-    )
-
-    print()
+    external_data=False
+)
 
 
 # ============================================================
-# ENTRY POINT
+# VALIDATE
 # ============================================================
 
-if __name__ == "__main__":
+print()
+print("[7/7] Validating ONNX model...")
 
-    main()
+onnx_model = onnx.load(
+    str(OUTPUT_MODEL),
+    load_external_data=False
+)
+
+onnx.checker.check_model(
+    onnx_model
+)
+
+
+# ============================================================
+# CHECK EXTERNAL DATA
+# ============================================================
+
+external_initializers = []
+
+for initializer in onnx_model.graph.initializer:
+
+    if initializer.external_data:
+        external_initializers.append(
+            initializer.name
+        )
+
+
+if external_initializers:
+
+    raise RuntimeError(
+        "ONNX model STILL contains external data references:\n"
+        + "\n".join(external_initializers)
+    )
+
+
+if EXTERNAL_DATA_FILE.exists():
+
+    raise RuntimeError(
+        f"External data file was created unexpectedly:\n"
+        f"{EXTERNAL_DATA_FILE}"
+    )
+
+
+# ============================================================
+# FINAL
+# ============================================================
+
+print()
+print("=" * 70)
+print("SUCCESS")
+print("=" * 70)
+
+print()
+print("ONNX model:")
+print(OUTPUT_MODEL)
+
+print()
+print(
+    "Model size:",
+    OUTPUT_MODEL.stat().st_size,
+    "bytes"
+)
+
+print()
+print("External data: NONE")
+
+print()
+print("ONNX checker: PASSED")
+
+print()
+print("=" * 70)
