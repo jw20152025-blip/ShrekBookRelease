@@ -72,6 +72,16 @@ Use it only when it is relevant:
     const statusElement =
         document.getElementById("shrekai-status");
 
+    const statusWrapper =
+        document.getElementById(
+            "shrekai-status-wrapper"
+        );
+
+    const characterCount =
+        document.getElementById(
+            "shrekai-character-count"
+        );
+
 
     // ========================================================
     // STATE
@@ -96,21 +106,107 @@ Use it only when it is relevant:
 
     function setStatus(text, state = "") {
 
-        if (!statusElement) {
+        if (statusElement) {
+            statusElement.textContent = text;
+        }
+
+
+        if (!statusWrapper) {
             return;
         }
 
-        statusElement.textContent = text;
 
-        statusElement.classList.remove(
+        statusWrapper.classList.remove(
             "online",
             "offline",
             "loading",
             "error"
         );
 
+
         if (state) {
-            statusElement.classList.add(state);
+            statusWrapper.classList.add(state);
+        }
+    }
+
+
+    // ========================================================
+    // COMPOSER STATE
+    // ========================================================
+
+    function updateComposerState() {
+
+        const enabled =
+            modelReady &&
+            !sending;
+
+
+        if (inputElement) {
+            inputElement.disabled =
+                !enabled;
+        }
+
+
+        if (sendButton) {
+            sendButton.disabled =
+                !enabled;
+        }
+    }
+
+
+    // ========================================================
+    // CHARACTER COUNTER
+    // ========================================================
+
+    function updateCharacterCount() {
+
+        if (!characterCount || !inputElement) {
+            return;
+        }
+
+
+        characterCount.textContent =
+            `${inputElement.value.length} / 4000`;
+    }
+
+
+    // ========================================================
+    // AUTO RESIZE INPUT
+    // ========================================================
+
+    function resizeInput() {
+
+        if (!inputElement) {
+            return;
+        }
+
+
+        inputElement.style.height =
+            "auto";
+
+
+        inputElement.style.height =
+            `${Math.min(
+                inputElement.scrollHeight,
+                160
+            )}px`;
+    }
+
+
+    // ========================================================
+    // EMPTY STATE
+    // ========================================================
+
+    function removeEmptyState() {
+
+        const empty =
+            document.getElementById(
+                "shrekai-empty"
+            );
+
+
+        if (empty) {
+            empty.remove();
         }
     }
 
@@ -129,8 +225,13 @@ Use it only when it is relevant:
             return;
         }
 
+
+        removeEmptyState();
+
+
         const wrapper =
             document.createElement("div");
+
 
         wrapper.className =
             `shrekai-message ${role}`;
@@ -139,14 +240,24 @@ Use it only when it is relevant:
         const bubble =
             document.createElement("div");
 
+
         bubble.className =
             "shrekai-message-bubble";
 
-        bubble.textContent = content;
 
-        wrapper.appendChild(bubble);
+        bubble.textContent =
+            content;
 
-        messagesElement.appendChild(wrapper);
+
+        wrapper.appendChild(
+            bubble
+        );
+
+
+        messagesElement.appendChild(
+            wrapper
+        );
+
 
         messagesElement.scrollTop =
             messagesElement.scrollHeight;
@@ -170,11 +281,17 @@ Use it only when it is relevant:
 
         removeThinking();
 
+
+        removeEmptyState();
+
+
         const wrapper =
             document.createElement("div");
 
+
         wrapper.id =
             "shrekai-thinking";
+
 
         wrapper.className =
             "shrekai-message assistant";
@@ -183,16 +300,54 @@ Use it only when it is relevant:
         const bubble =
             document.createElement("div");
 
+
         bubble.className =
             "shrekai-message-bubble";
 
-        bubble.textContent =
-            "ShrekAI is thinking...";
 
+        const thinking =
+            document.createElement("div");
+
+
+        thinking.className =
+            "shrekai-thinking";
+
+
+        const label =
+            document.createElement("span");
+
+
+        label.textContent =
+            "ShrekAI is thinking";
+
+
+        const dots =
+            document.createElement("span");
+
+
+        dots.className =
+            "shrekai-thinking-dots";
+
+
+        for (let i = 0; i < 3; i++) {
+
+            const dot =
+                document.createElement("span");
+
+            dots.appendChild(dot);
+        }
+
+
+        thinking.appendChild(label);
+
+        thinking.appendChild(dots);
+
+        bubble.appendChild(thinking);
 
         wrapper.appendChild(bubble);
 
         messagesElement.appendChild(wrapper);
+
 
         messagesElement.scrollTop =
             messagesElement.scrollHeight;
@@ -205,6 +360,7 @@ Use it only when it is relevant:
             document.getElementById(
                 "shrekai-thinking"
             );
+
 
         if (existing) {
             existing.remove();
@@ -221,6 +377,7 @@ Use it only when it is relevant:
         if (!messagesElement) {
             return;
         }
+
 
         messagesElement.innerHTML = "";
     }
@@ -255,9 +412,14 @@ Use it only when it is relevant:
 
         let data = null;
 
+
         try {
-            data = await response.json();
+
+            data =
+                await response.json();
+
         } catch {
+
             data = null;
         }
 
@@ -270,8 +432,10 @@ Use it only when it is relevant:
                     `API request failed (${response.status})`
                 );
 
+
             error.status =
                 response.status;
+
 
             throw error;
         }
@@ -291,31 +455,18 @@ Use it only when it is relevant:
             "[ShrekAI][Runtime] Checking ShrekAIWeb..."
         );
 
-        console.log(
-            "[ShrekAI][Runtime] Current value:",
-            window.ShrekAIWeb
-        );
-
-
-        // ========================================================
-        // ALREADY LOADED
-        // ========================================================
 
         if (
             typeof window.ShrekAIWeb === "function"
         ) {
 
             console.log(
-                "[ShrekAI][Runtime] ✅ ShrekAIWeb already exists."
+                "[ShrekAI][Runtime] Runtime already loaded."
             );
 
             return;
         }
 
-
-        // ========================================================
-        // REMOVE ANY OLD / FAILED SCRIPT TAG
-        // ========================================================
 
         const oldScripts =
             document.querySelectorAll(
@@ -323,31 +474,9 @@ Use it only when it is relevant:
             );
 
 
-        console.log(
-            "[ShrekAI][Runtime] Existing runtime script tags:",
-            oldScripts.length
-        );
-
-
         for (const script of oldScripts) {
-
-            console.log(
-                "[ShrekAI][Runtime] Removing old runtime script:",
-                script.src
-            );
-
             script.remove();
         }
-
-
-        // ========================================================
-        // CREATE FRESH SCRIPT
-        // ========================================================
-
-        console.log(
-            "[ShrekAI][Runtime] Loading fresh runtime:",
-            RUNTIME_URL
-        );
 
 
         await new Promise(
@@ -361,25 +490,17 @@ Use it only when it is relevant:
                     RUNTIME_URL;
 
 
-                script.async = false;
-
-
                 script.onload = () => {
 
                     console.log(
-                        "[ShrekAI][Runtime] ✅ Runtime script loaded."
+                        "[ShrekAI][Runtime] Runtime script loaded."
                     );
 
                     resolve();
                 };
 
 
-                script.onerror = (event) => {
-
-                    console.error(
-                        "[ShrekAI][Runtime] ❌ Runtime script FAILED to load.",
-                        event
-                    );
+                script.onerror = () => {
 
                     reject(
                         new Error(
@@ -389,29 +510,10 @@ Use it only when it is relevant:
                 };
 
 
-                document.head.appendChild(script);
+                document.head.appendChild(
+                    script
+                );
             }
-        );
-
-
-        // ========================================================
-        // VERIFY EXPORT
-        // ========================================================
-
-        console.log(
-            "[ShrekAI][Runtime] Checking export after script load..."
-        );
-
-
-        console.log(
-            "[ShrekAI][Runtime] window.ShrekAIWeb:",
-            window.ShrekAIWeb
-        );
-
-
-        console.log(
-            "[ShrekAI][Runtime] typeof window.ShrekAIWeb:",
-            typeof window.ShrekAIWeb
         );
 
 
@@ -420,15 +522,16 @@ Use it only when it is relevant:
         ) {
 
             throw new Error(
-                "shrekai_web.js loaded, but did not export window.ShrekAIWeb."
+                "shrekai_web.js loaded but did not export window.ShrekAIWeb."
             );
         }
 
 
         console.log(
-            "[ShrekAI][Runtime] 🎉 ShrekAIWeb is available."
+            "[ShrekAI][Runtime] ShrekAIWeb available."
         );
     }
+
 
     // ========================================================
     // LOAD MEMORIES
@@ -445,7 +548,9 @@ Use it only when it is relevant:
 
 
             memories =
-                Array.isArray(data.memories)
+                Array.isArray(
+                    data.memories
+                )
                     ? data.memories
                     : [];
 
@@ -474,6 +579,7 @@ Use it only when it is relevant:
                 "[ShrekAI] Failed to load memories:",
                 error
             );
+
 
             memories = [];
         }
@@ -524,7 +630,8 @@ Use it only when it is relevant:
 
 
             conversationId =
-                data.conversation?.id || id;
+                data.conversation?.id ||
+                id;
 
 
             const loadedMessages =
@@ -584,6 +691,7 @@ Use it only when it is relevant:
                 error
             );
 
+
             conversationId = null;
 
             messages = [];
@@ -594,7 +702,7 @@ Use it only when it is relevant:
 
 
     // ========================================================
-    // CREATE / SAVE CONVERSATION
+    // SAVE CONVERSATION
     // ========================================================
 
     async function saveConversation() {
@@ -646,8 +754,6 @@ Use it only when it is relevant:
                 console.warn(
                     "[ShrekAI] Login required to save conversations."
                 );
-
-                return;
             }
         }
     }
@@ -736,10 +842,7 @@ Use it only when it is relevant:
 
         sending = true;
 
-
-        sendButton.disabled = true;
-
-        inputElement.disabled = true;
+        updateComposerState();
 
 
         addMessageToUI(
@@ -751,13 +854,18 @@ Use it only when it is relevant:
 
         inputElement.value = "";
 
+        updateCharacterCount();
+
+        resizeInput();
+
+
         showThinking();
 
 
         try {
 
             setStatus(
-                "● ShrekAI thinking",
+                "ShrekAI is thinking...",
                 "loading"
             );
 
@@ -788,7 +896,7 @@ Use it only when it is relevant:
 
 
             setStatus(
-                "● ShrekAI",
+                "ShrekAI is online",
                 "online"
             );
 
@@ -804,23 +912,19 @@ Use it only when it is relevant:
             removeThinking();
 
 
-            const errorText =
+            addMessageToUI(
+                "assistant",
                 "ShrekAI ran into an error: " +
                 (
                     error?.message ||
                     "Unknown error"
-                );
-
-
-            addMessageToUI(
-                "assistant",
-                errorText,
+                ),
                 false
             );
 
 
             setStatus(
-                "● ShrekAI error",
+                "ShrekAI error",
                 "error"
             );
 
@@ -829,11 +933,12 @@ Use it only when it is relevant:
 
             sending = false;
 
-            sendButton.disabled = false;
+            updateComposerState();
 
-            inputElement.disabled = false;
 
-            inputElement.focus();
+            if (modelReady) {
+                inputElement.focus();
+            }
         }
     }
 
@@ -861,8 +966,30 @@ Use it only when it is relevant:
         clearMessagesUI();
 
 
+        messagesElement.innerHTML = `
+            <div
+                id="shrekai-empty"
+                class="shrekai-empty"
+            >
+                <div class="shrekai-empty-icon">
+                    🤖
+                </div>
+
+                <h2>
+                    Fresh chat.
+                </h2>
+
+                <p>
+                    The slate is clean. What are we building?
+                </p>
+            </div>
+        `;
+
+
         setStatus(
-            "● ShrekAI",
+            modelReady
+                ? "ShrekAI is online"
+                : "Loading ShrekAI...",
             modelReady
                 ? "online"
                 : "loading"
@@ -898,7 +1025,7 @@ Use it only when it is relevant:
 
 
     // ========================================================
-    // LOAD MOST RECENT CONVERSATION
+    // LOAD LATEST CONVERSATION
     // ========================================================
 
     async function loadLatestConversation() {
@@ -962,69 +1089,46 @@ Use it only when it is relevant:
     async function loadModel() {
 
         console.group(
-            "[ShrekAI] ===== MODEL LOAD DEBUG ====="
+            "[ShrekAI] MODEL LOAD"
         );
 
 
         try {
 
-            console.log(
-                "[ShrekAI][1] Starting model load..."
+            modelReady = false;
+
+            updateComposerState();
+
+
+            setStatus(
+                "Loading ShrekAI...",
+                "loading"
             );
 
 
             console.log(
-                "[ShrekAI][1] Current URL:",
-                window.location.href
-            );
-
-
-            console.log(
-                "[ShrekAI][1] User agent:",
+                "[ShrekAI] Browser:",
                 navigator.userAgent
             );
 
 
             console.log(
-                "[ShrekAI][1] WebGPU available:",
+                "[ShrekAI] WebGPU:",
                 "gpu" in navigator
             );
 
 
             console.log(
-                "[ShrekAI][1] ONNX Runtime available:",
+                "[ShrekAI] ONNX Runtime:",
                 typeof window.ort
             );
 
 
-            setStatus(
-                "● Loading ShrekAI...",
-                "loading"
-            );
-
-
             // ====================================================
-            // STEP 2 — LOAD RUNTIME
+            // RUNTIME
             // ====================================================
-
-            console.log(
-                "[ShrekAI][2] Ensuring ShrekAI web runtime is loaded..."
-            );
-
 
             await ensureShrekAIWebRuntime();
-
-
-            console.log(
-                "[ShrekAI][2] window.ShrekAIWeb:",
-                window.ShrekAIWeb
-            );
-
-
-            console.log(
-                "[ShrekAI][2] typeof window.ShrekAIWeb:",
-                typeof window.ShrekAIWeb
-            );
 
 
             if (
@@ -1032,25 +1136,14 @@ Use it only when it is relevant:
             ) {
 
                 throw new Error(
-                    "ShrekAIWeb runtime failed to initialize."
+                    "ShrekAIWeb runtime is unavailable."
                 );
             }
 
 
-            console.log(
-                "[ShrekAI][2] ✅ ShrekAIWeb exists."
-            );
-
-
             // ====================================================
-            // STEP 3 — CHECK MODEL
+            // MODEL CHECK
             // ====================================================
-
-            console.log(
-                "[ShrekAI][3] Checking model URL:",
-                MODEL_URL
-            );
-
 
             const modelCheck =
                 await fetch(
@@ -1063,13 +1156,13 @@ Use it only when it is relevant:
 
 
             console.log(
-                "[ShrekAI][3] Model HTTP status:",
+                "[ShrekAI] Model HTTP:",
                 modelCheck.status
             );
 
 
             console.log(
-                "[ShrekAI][3] Model content type:",
+                "[ShrekAI] Model type:",
                 modelCheck.headers.get(
                     "content-type"
                 )
@@ -1077,7 +1170,7 @@ Use it only when it is relevant:
 
 
             console.log(
-                "[ShrekAI][3] Model content length:",
+                "[ShrekAI] Model size:",
                 modelCheck.headers.get(
                     "content-length"
                 )
@@ -1092,20 +1185,9 @@ Use it only when it is relevant:
             }
 
 
-            console.log(
-                "[ShrekAI][3] ✅ ONNX model reachable."
-            );
-
-
             // ====================================================
-            // STEP 4 — CHECK TOKENIZER
+            // TOKENIZER CHECK
             // ====================================================
-
-            console.log(
-                "[ShrekAI][4] Checking tokenizer URL:",
-                TOKENIZER_URL
-            );
-
 
             const tokenizerCheck =
                 await fetch(
@@ -1118,21 +1200,13 @@ Use it only when it is relevant:
 
 
             console.log(
-                "[ShrekAI][4] Tokenizer HTTP status:",
+                "[ShrekAI] Tokenizer HTTP:",
                 tokenizerCheck.status
             );
 
 
             console.log(
-                "[ShrekAI][4] Tokenizer content type:",
-                tokenizerCheck.headers.get(
-                    "content-type"
-                )
-            );
-
-
-            console.log(
-                "[ShrekAI][4] Tokenizer content length:",
+                "[ShrekAI] Tokenizer size:",
                 tokenizerCheck.headers.get(
                     "content-length"
                 )
@@ -1147,19 +1221,9 @@ Use it only when it is relevant:
             }
 
 
-            console.log(
-                "[ShrekAI][4] ✅ Tokenizer reachable."
-            );
-
-
             // ====================================================
-            // STEP 5 — CREATE INSTANCE
+            // INSTANCE
             // ====================================================
-
-            console.log(
-                "[ShrekAI][5] Creating ShrekAIWeb instance..."
-            );
-
 
             shrekAI =
                 new window.ShrekAIWeb({
@@ -1172,18 +1236,6 @@ Use it only when it is relevant:
                 });
 
 
-            console.log(
-                "[ShrekAI][5] Instance:",
-                shrekAI
-            );
-
-
-            console.log(
-                "[ShrekAI][5] Constructor:",
-                shrekAI?.constructor?.name
-            );
-
-
             if (!shrekAI) {
 
                 throw new Error(
@@ -1192,50 +1244,12 @@ Use it only when it is relevant:
             }
 
 
-            console.log(
-                "[ShrekAI][5] ✅ Instance created."
-            );
-
-
-            // ====================================================
-            // STEP 6 — CHECK METHODS
-            // ====================================================
-
-            console.log(
-                "[ShrekAI][6] Checking runtime methods..."
-            );
-
-
-            console.log(
-                "[ShrekAI][6] load():",
-                typeof shrekAI.load
-            );
-
-
-            console.log(
-                "[ShrekAI][6] generate():",
-                typeof shrekAI.generate
-            );
-
-
-            console.log(
-                "[ShrekAI][6] tokenize():",
-                typeof shrekAI.tokenize
-            );
-
-
-            console.log(
-                "[ShrekAI][6] detokenize():",
-                typeof shrekAI.detokenize
-            );
-
-
             if (
                 typeof shrekAI.load !== "function"
             ) {
 
                 throw new Error(
-                    "ShrekAIWeb exists, but load() is missing."
+                    "ShrekAIWeb.load() is missing."
                 );
             }
 
@@ -1245,109 +1259,79 @@ Use it only when it is relevant:
             ) {
 
                 throw new Error(
-                    "ShrekAIWeb exists, but generate() is missing."
+                    "ShrekAIWeb.generate() is missing."
                 );
             }
 
 
             console.log(
-                "[ShrekAI][6] ✅ Runtime methods look good."
+                "[ShrekAI] Loading ONNX model..."
             );
 
 
-            // ====================================================
-            // STEP 7 — LOAD MODEL
-            // ====================================================
-
-            console.log(
-                "[ShrekAI][7] Calling shrekAI.load()..."
-            );
-
-
-            const loadStart =
+            const start =
                 performance.now();
 
 
             await shrekAI.load();
 
 
-            const loadTime =
-                performance.now() -
-                loadStart;
+            const elapsed =
+                Math.round(
+                    performance.now() - start
+                );
 
 
             console.log(
-                "[ShrekAI][7] Model load time:",
-                `${Math.round(loadTime)} ms`
-            );
-
-
-            console.log(
-                "[ShrekAI][7] Runtime after load:",
-                shrekAI
+                `[ShrekAI] Model loaded in ${elapsed} ms`
             );
 
 
             // ====================================================
-            // STEP 8 — SUCCESS
+            // SUCCESS
             // ====================================================
 
             modelReady = true;
 
+            updateComposerState();
+
 
             setStatus(
-                "● ShrekAI",
+                "ShrekAI is online",
                 "online"
             );
 
 
             console.log(
-                "[ShrekAI][8] ✅ MODEL LOADED."
+                "[ShrekAI] MODEL READY."
             );
 
 
-            console.log(
-                "[ShrekAI] 🎉 ShrekAI is ready!");
+            if (inputElement) {
+                inputElement.focus();
+            }
 
 
         } catch (error) {
 
             modelReady = false;
 
-
-            console.error(
-                "[ShrekAI] ❌ MODEL LOAD FAILED"
-            );
+            updateComposerState();
 
 
             console.error(
-                "[ShrekAI] Error:",
+                "[ShrekAI] MODEL LOAD FAILED:",
                 error
             );
 
 
-            console.error(
-                "[ShrekAI] Error name:",
-                error?.name
-            );
-
-
-            console.error(
-                "[ShrekAI] Error message:",
-                error?.message
-            );
-
-
-            console.error(
-                "[ShrekAI] Error stack:",
-                error?.stack
-            );
-
-
             setStatus(
-                "● ShrekAI failed to load",
+                "ShrekAI failed to load",
                 "error"
             );
+
+
+            removeEmptyState();
 
 
             if (messagesElement) {
@@ -1355,12 +1339,14 @@ Use it only when it is relevant:
                 const wrapper =
                     document.createElement("div");
 
+
                 wrapper.className =
                     "shrekai-message assistant";
 
 
                 const bubble =
                     document.createElement("div");
+
 
                 bubble.className =
                     "shrekai-message-bubble";
@@ -1379,6 +1365,7 @@ Use it only when it is relevant:
                     wrapper
                 );
             }
+
 
         } finally {
 
@@ -1412,6 +1399,17 @@ Use it only when it is relevant:
     if (inputElement) {
 
         inputElement.addEventListener(
+            "input",
+            () => {
+
+                updateCharacterCount();
+
+                resizeInput();
+            }
+        );
+
+
+        inputElement.addEventListener(
             "keydown",
             event => {
 
@@ -1440,9 +1438,22 @@ Use it only when it is relevant:
         );
 
 
-        await loadMemories();
+        updateCharacterCount();
 
-        await loadLatestConversation();
+        updateComposerState();
+
+
+        /*
+         * These are independent of the ONNX model.
+         * If history/memories fail, the actual model can
+         * still load and the chat composer can still work.
+         */
+
+        await Promise.allSettled([
+            loadMemories(),
+            loadLatestConversation()
+        ]);
+
 
         await loadModel();
 
