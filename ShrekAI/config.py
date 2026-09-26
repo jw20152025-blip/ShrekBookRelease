@@ -253,7 +253,7 @@ EVALUATION_FILE = (
 # PERFORMANCE
 # ============================================================
 
-USE_COMPILE = True
+USE_COMPILE = False
 
 USE_FLASH_ATTENTION = True
 
@@ -274,3 +274,28 @@ if torch.cuda.is_available():
     torch.backends.cudnn.allow_tf32 = True
 
     torch.backends.cudnn.benchmark = True
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
