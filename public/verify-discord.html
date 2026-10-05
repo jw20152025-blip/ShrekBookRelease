@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>Verify Discord - ShrekBook</title>
 
@@ -14,20 +18,32 @@
         body {
             margin: 0;
             min-height: 100vh;
+
             display: flex;
             align-items: center;
             justify-content: center;
+
             background: #111;
             color: white;
-            font-family: Arial, sans-serif;
+
+            font-family:
+                Arial,
+                sans-serif;
         }
 
         .box {
             width: min(430px, 92%);
+
             padding: 30px;
+
             border-radius: 18px;
+
             background: #1d1d1d;
-            box-shadow: 0 10px 40px rgba(0,0,0,.5);
+
+            box-shadow:
+                0 10px 40px
+                rgba(0, 0, 0, .5);
+
             text-align: center;
         }
 
@@ -42,27 +58,40 @@
 
         input {
             width: 100%;
+
             padding: 14px;
+
             margin-top: 15px;
+
             border: 0;
             border-radius: 10px;
+
             background: #292929;
             color: white;
+
             font-size: 18px;
+
             text-align: center;
+
             outline: none;
         }
 
         button {
             width: 100%;
+
             margin-top: 15px;
+
             padding: 14px;
+
             border: 0;
             border-radius: 10px;
+
             background: #5865f2;
             color: white;
+
             font-size: 17px;
             font-weight: bold;
+
             cursor: pointer;
         }
 
@@ -106,8 +135,9 @@
     </div>
 
     <p>
-        Run <b>/verify</b> in the ShrekBook Discord server.
-        Then enter the code the bot gives you.
+        Run <b>/verify</b> in the ShrekBook
+        Discord server.
+        Then enter the code below.
     </p>
 
     <input
@@ -127,18 +157,34 @@
 </div>
 
 <script>
-const userElement = document.getElementById("user");
-const codeInput = document.getElementById("code");
-const verifyButton = document.getElementById("verifyButton");
-const statusElement = document.getElementById("status");
+const userElement =
+    document.getElementById("user");
+
+const codeInput =
+    document.getElementById("code");
+
+const verifyButton =
+    document.getElementById(
+        "verifyButton"
+    );
+
+const statusElement =
+    document.getElementById("status");
+
 
 async function checkLogin() {
     try {
-        const response = await fetch("/api/discord/me", {
-            credentials: "include"
-        });
+        const response =
+            await fetch(
+                "/api/discord/me",
+                {
+                    credentials:
+                        "include"
+                }
+            );
 
-        const data = await response.json();
+        const data =
+            await response.json();
 
         if (!data.loggedIn) {
             userElement.textContent =
@@ -146,6 +192,7 @@ async function checkLogin() {
 
             codeInput.disabled = true;
             verifyButton.disabled = true;
+
             return;
         }
 
@@ -158,59 +205,92 @@ async function checkLogin() {
     }
 }
 
-verifyButton.addEventListener("click", async () => {
-    const code = codeInput.value.trim();
 
-    if (!code) {
-        statusElement.className = "error";
-        statusElement.textContent =
-            "Enter your verification code.";
-        return;
-    }
+verifyButton.addEventListener(
+    "click",
+    async () => {
 
-    verifyButton.disabled = true;
-    verifyButton.textContent = "Submitting...";
-    statusElement.textContent = "";
+        const code =
+            codeInput.value.trim();
 
-    try {
-        const response = await fetch(
-            "/api/discord/verification-request",
-            {
-                method: "POST",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    code
-                })
-            }
-        );
+        if (!code) {
+            statusElement.className =
+                "error";
 
-        const data = await response.json();
+            statusElement.textContent =
+                "Enter your verification code.";
 
-        if (!response.ok || !data.success) {
-            throw new Error(
-                data.error || "Verification failed."
-            );
+            return;
         }
 
-        statusElement.className = "success";
-        statusElement.textContent =
-            "✅ Code accepted! Check Discord in a few seconds.";
+        verifyButton.disabled = true;
 
-        codeInput.disabled = true;
-        verifyButton.textContent = "Waiting for Discord ✓";
+        verifyButton.textContent =
+            "Submitting...";
 
-    } catch (error) {
-        statusElement.className = "error";
-        statusElement.textContent =
-            "❌ " + error.message;
+        statusElement.textContent = "";
 
-        verifyButton.disabled = false;
-        verifyButton.textContent = "Verify Discord";
+        try {
+            const response =
+                await fetch(
+                    "/api/discord/verification-request",
+                    {
+                        method: "POST",
+
+                        credentials:
+                            "include",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body: JSON.stringify({
+                            code
+                        })
+                    }
+                );
+
+            const data =
+                await response.json();
+
+            if (
+                !response.ok ||
+                !data.success
+            ) {
+                throw new Error(
+                    data.error ||
+                    "Verification failed."
+                );
+            }
+
+            statusElement.className =
+                "success";
+
+            statusElement.textContent =
+                "✅ Code accepted! Your Discord role will be updated shortly.";
+
+            codeInput.disabled = true;
+
+            verifyButton.textContent =
+                "Verification Submitted ✓";
+
+        } catch (error) {
+
+            statusElement.className =
+                "error";
+
+            statusElement.textContent =
+                "❌ " + error.message;
+
+            verifyButton.disabled = false;
+
+            verifyButton.textContent =
+                "Verify Discord";
+        }
     }
-});
+);
+
 
 checkLogin();
 </script>
