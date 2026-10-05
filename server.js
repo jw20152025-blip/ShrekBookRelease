@@ -14328,6 +14328,111 @@ app.delete(
     }
 );
 
+app.get("/api/discord/me", (req, res) => {
+    if (!req.session?.user) {
+        return res.status(401).json({
+            loggedIn: false
+        });
+    }
+
+    res.json({
+        loggedIn: true,
+        username: req.session.user.username
+    });
+});
+// ============================================================
+// DISCORD VERIFICATION — ISOLATED POLLING SYSTEM
+// ============================================================
+
+const discordVerificationRequests = new Map();
+
+const DISCORD_VERIFY_SECRET = process.env.SHREKBOOK_API_SECRET;
+
+// User submits their Discord verification code
+app.post("/api/discord/verification-request", (req, res) => {
+    if (!req.session?.user) {
+        return res.status(401).json({
+            success: false,
+            error: "You must be logged into ShrekBook."
+        });
+    }
+
+    const { code } = req.body;
+
+    if (!code || typeof code !== "string") {
+        return res.status(400).json({
+            success: false,
+            error: "Verification code is required."
+        });
+    }
+
+    const cleanCode = code.trim().toUpperCase();
+
+    discordVerificationRequests.set(cleanCode, {
+        username: req.session.user.username,
+        createdAt: Date.now()
+    });
+
+    res.json({
+        success: true,
+        message: "Verification request submitted."
+    });
+});
+
+
+// Bot polls for pending verification requests
+app.get("/api/discord/verification-pending", (req, res) => {
+    if (req.headers["x-shrekbook-secret"] !== DISCORD_VERIFY_SECRET) {
+        return res.status(403).json({
+            success: false,
+            error: "Forbidden"
+        });
+    }
+
+    const now = Date.now();
+    const requests = [];
+
+    for (const [code, request] of discordVerificationRequests) {
+        // Expire requests after 10 minutes
+        if (now - request.createdAt > 10 * 60 * 1000) {
+            discordVerificationRequests.delete(code);
+            continue;
+        }
+
+        requests.push({
+            code,
+            username: request.username
+        });
+    }
+
+    res.json({
+        success: true,
+        requests
+    });
+});
+
+
+// Bot calls this after successfully assigning the Discord role
+app.post("/api/discord/verification-complete", (req, res) => {
+    if (req.headers["x-shrekbook-secret"] !== DISCORD_VERIFY_SECRET) {
+        return res.status(403).json({
+            success: false,
+            error: "Forbidden"
+        });
+    }
+
+    const { code } = req.body;
+
+    if (code) {
+        discordVerificationRequests.delete(
+            code.trim().toUpperCase()
+        );
+    }
+
+    res.json({
+        success: true
+    });
+});
 
 
 
