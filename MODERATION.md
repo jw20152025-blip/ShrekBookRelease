@@ -156,6 +156,10 @@ Certain information may be retained where necessary for security, abuse preventi
 
 Account deletion is generally irreversible.
 
+5.5. Account Deactivation
+
+Under very specific cirumstances, your account may be deactivated. In case of this, please do not appeal. This action is not appealable and all appeals will be rejected.
+
 6. How Moderation Escalates 📈
 
 Moderation does not always follow a fixed progression.

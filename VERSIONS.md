@@ -2,14 +2,15 @@ Versions:
 
 Preclassic: 0.1
 Not available
+Added Basic HTML + Preclassic Account System
 
 Classic: 0.2
 Available on CodePen
-Added basic accounts
+Added legacy account system
 
 Classic: 0.3
 Deleted
-Added profiles
+Refined Account system and added profiles
 
 Indev: 0.4
 Not Available
@@ -40,12 +41,16 @@ Superseded into Release
 Added admin controls
 
 Release: 1
-Current update
+On GitHub
 Refined admin controls
 
 Release: 1.1
+Current Update
+ShrekAI, themes, ShrekSearch, etc.
+
+Release: 2.2
 Planned in future
-Unknown
+100% Coherent ShrekAI responses, Notifications, and ShrekBook Browser
 
 
 Overall status:
