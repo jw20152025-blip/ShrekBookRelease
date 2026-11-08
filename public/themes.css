@@ -1005,3 +1005,334 @@ html[data-theme="1980s"] body::after {
         animation: none !important;
     }
 }
+
+/* ============================================================
+   SHREKBOOK 1970s — EXPERIMENTAL MAINFRAME
+   Barely feasible early computing prototype.
+   ============================================================ */
+
+:root[data-theme="1970s"] {
+    --sb-bg: #17180f;
+    --sb-surface: #29291c;
+    --sb-text: #b9ae7c;
+    --sb-muted: #777451;
+    --sb-border: #68613f;
+    --sb-accent: #c0a04e;
+    --sb-accent-text: #151509;
+}
+
+html[data-theme="1970s"] body {
+    background: #17180f !important;
+    color: #b9ae7c !important;
+    font-family: "Courier New", monospace !important;
+    letter-spacing: 0.035em;
+    line-height: 1.35;
+    animation: sb70s-power 5s infinite;
+}
+
+html[data-theme="1970s"] * {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+
+html[data-theme="1970s"] .navbar,
+html[data-theme="1970s"] header {
+    background: #252518 !important;
+    border-bottom: 3px double #75683e !important;
+}
+
+html[data-theme="1970s"] .card,
+html[data-theme="1970s"] .post,
+html[data-theme="1970s"] .panel,
+html[data-theme="1970s"] .container {
+    background: #242419 !important;
+    border: 1px dotted #756d49 !important;
+}
+
+html[data-theme="1970s"] button,
+html[data-theme="1970s"] input,
+html[data-theme="1970s"] select,
+html[data-theme="1970s"] textarea {
+    background: #29291c !important;
+    color: #c0b47e !important;
+    border: 2px outset #71663e !important;
+    border-radius: 0 !important;
+    font-family: "Courier New", monospace !important;
+}
+
+html[data-theme="1970s"] button:active {
+    border-style: inset !important;
+}
+
+html[data-theme="1970s"] a {
+    color: #d0ad59 !important;
+    text-decoration: underline !important;
+}
+
+html[data-theme="1970s"] img,
+html[data-theme="1970s"] video {
+    filter: grayscale(0.8) sepia(0.45) contrast(1.15);
+    image-rendering: pixelated;
+}
+
+html[data-theme="1970s"] pre,
+html[data-theme="1970s"] code {
+    background: #101108 !important;
+    color: #c3b56d !important;
+    border: 1px solid #5c5636 !important;
+    font-family: "Courier New", monospace !important;
+}
+
+html[data-theme="1970s"] hr {
+    border: 0;
+    border-top: 1px dotted #756d49;
+}
+
+html[data-theme="1970s"] body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 99998;
+    opacity: 0.11;
+    background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 3px,
+        #b9a66a 4px,
+        transparent 5px
+    );
+}
+
+html[data-theme="1970s"] body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 99997;
+    opacity: 0.2;
+    background: radial-gradient(
+        ellipse at center,
+        transparent 40%,
+        #000 100%
+    );
+}
+
+@keyframes sb70s-power {
+    0%, 100% { filter: brightness(1); }
+    48% { filter: brightness(0.96); }
+    50% { filter: brightness(0.91); }
+    52% { filter: brightness(0.98); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html[data-theme="1970s"] body {
+        animation: none !important;
+    }
+}
+
+/* ============================================================
+   SHREKBOOK 1960s — BINARY RESEARCH PROTOTYPE
+   Everything displayed is represented in binary.
+   ============================================================ */
+
+:root[data-theme="1960s"] {
+    --sb-bg: #020704;
+    --sb-surface: #06130a;
+    --sb-text: #8cbd92;
+    --sb-muted: #456c4c;
+    --sb-border: #235b32;
+    --sb-accent: #a5e6a5;
+    --sb-accent-text: #001b07;
+}
+
+html[data-theme="1960s"] body {
+    background: #020704 !important;
+    color: #8cbd92 !important;
+    font-family: "Courier New", monospace !important;
+    font-size: 12px !important;
+    line-height: 1.6 !important;
+    letter-spacing: 0.08em;
+    overflow-x: hidden;
+}
+
+html[data-theme="1960s"] * {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    text-shadow: 0 0 3px #3c9b51 !important;
+    font-family: "Courier New", monospace !important;
+}
+
+html[data-theme="1960s"] .navbar,
+html[data-theme="1960s"] header {
+    background: #06130a !important;
+    border-bottom: 2px dashed #347344 !important;
+}
+
+html[data-theme="1960s"] .card,
+html[data-theme="1960s"] .post,
+html[data-theme="1960s"] .panel,
+html[data-theme="1960s"] .container {
+    background: #06130a !important;
+    border: 1px dashed #235b32 !important;
+}
+
+html[data-theme="1960s"] button,
+html[data-theme="1960s"] input,
+html[data-theme="1960s"] select,
+html[data-theme="1960s"] textarea {
+    background: #020904 !important;
+    color: #a0dca2 !important;
+    border: 1px solid #43834e !important;
+    border-radius: 0 !important;
+}
+
+html[data-theme="1960s"] a {
+    color: #a5e6a5 !important;
+    text-decoration: underline !important;
+}
+
+html[data-theme="1960s"] img,
+html[data-theme="1960s"] video {
+    filter: grayscale(1) contrast(1.5);
+    image-rendering: pixelated;
+}
+
+html[data-theme="1960s"] pre,
+html[data-theme="1960s"] code {
+    background: #010502 !important;
+    color: #a0dca2 !important;
+    border: 1px dashed #235b32 !important;
+}
+
+html[data-theme="1960s"] body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 99998;
+    opacity: 0.17;
+    background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 2px,
+        #70bd7b 3px,
+        transparent 4px
+    );
+}
+
+html[data-theme="1960s"] body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 99997;
+    opacity: 0.15;
+    background: radial-gradient(
+        ellipse at center,
+        transparent 25%,
+        #000 100%
+    );
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html[data-theme="1960s"] body {
+        animation: none !important;
+    }
+}
+/* ============================================================
+   SHREKBOOK HISTORICAL THEME JITTER UPGRADE
+   1970s: Heavy instability
+   1960s: Slightly more unstable
+   ============================================================ */
+
+/* 1970s — HEAVY JITTER */
+
+html[data-theme="1970s"] body {
+    animation:
+        sb70s-power 5s infinite,
+        sb70s-jitter 0.11s infinite steps(1, end);
+}
+
+@keyframes sb70s-jitter {
+    0% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+    15% {
+        transform: translate(2px, -1px) rotate(0.05deg);
+    }
+    30% {
+        transform: translate(-2px, 2px) rotate(-0.07deg);
+    }
+    45% {
+        transform: translate(1px, 2px) rotate(0.04deg);
+    }
+    60% {
+        transform: translate(-2px, -2px) rotate(-0.05deg);
+    }
+    75% {
+        transform: translate(2px, 1px) rotate(0.06deg);
+    }
+    90% {
+        transform: translate(-1px, -2px) rotate(-0.04deg);
+    }
+    100% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+}
+
+
+/* 1960s — EXTREME JITTER */
+
+html[data-theme="1960s"] body {
+    animation: sb60s-jitter 0.105s infinite steps(1, end);
+}
+
+@keyframes sb60s-jitter {
+    0% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+    15% {
+        transform: translate(2px, -2px) rotate(0.06deg);
+    }
+    30% {
+        transform: translate(-2.5px, 2px) rotate(-0.08deg);
+    }
+    45% {
+        transform: translate(2px, 2px) rotate(0.05deg);
+    }
+    60% {
+        transform: translate(-2.5px, -2px) rotate(-0.07deg);
+    }
+    75% {
+        transform: translate(2.5px, 1px) rotate(0.08deg);
+    }
+    90% {
+        transform: translate(-1px, -2px) rotate(-0.05deg);
+    }
+    100% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+}
+
+
+/* ACCESSIBILITY */
+
+@media (prefers-reduced-motion: reduce) {
+    html[data-theme="1970s"] body,
+    html[data-theme="1960s"] body {
+        animation: none !important;
+    }
+}
+
+
+
+
+
+/* Prevent historical theme jitter from creating horizontal scrollbars */
+
+html[data-theme="1970s"] body,
+html[data-theme="1960s"] body {
+    overflow-x: hidden !important;
+}

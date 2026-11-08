@@ -23,6 +23,8 @@
         "shrekbook-special",
         "1990s",
         "1980s",
+        "1970s",
+        "1960s",
         "random-colors",
         "random-selection"
     ];
@@ -116,6 +118,8 @@
         monochrome: "⚫ Monochrome",
         "1990s": "💾 1990s — Pre-Web Test",
         "1980s": "📼 1980s — VHS Prototype",
+        "1970s": "📻 1970s — Experimental Mainframe",
+        "1960s": "⌨️ 1960s — Binary Research Prototype",
         "shrekbook-special": "🧅 ShrekBook Special",
         "random-colors": "🌈 Random Colors",
         "random-selection": "🎲 Random Selection"
@@ -334,7 +338,7 @@
             },
             {
                 label: "Experimental eras",
-                themes: ["1990s", "1980s"]
+                themes: ["1990s", "1980s", "1970s", "1960s"]
             },
             {
                 label: "Random themes",
@@ -385,7 +389,180 @@
         applyTheme(getSavedTheme());
         createThemeSelector();
     }
+    /* ============================================================
+    SHREKBOOK 1960s — BINARY DISPLAY ENGINE
+    Converts visible page text into UTF-8 binary.
+    Automatically handles dynamically added content.
+    ============================================================ */
 
+    const binaryTextOriginals = new WeakMap();
+    const binaryEncoder = new TextEncoder();
+
+    let binaryModeActive = false;
+    let binaryTextObserver = null;
+
+    function toBinaryText(value) {
+        return Array.from(
+            binaryEncoder.encode(value),
+            byte => byte.toString(2).padStart(8, "0")
+        ).join(" ");
+    }
+
+    function shouldConvertBinaryText(node) {
+        if (!node || node.nodeType !== Node.TEXT_NODE) {
+            return false;
+        }
+
+        if (!node.nodeValue || !node.nodeValue.trim()) {
+            return false;
+        }
+
+        const parent = node.parentElement;
+
+        if (!parent) return false;
+
+        if (parent.closest(
+            "script, style, noscript, textarea, [contenteditable='true']"
+        )) {
+            return false;
+        }
+
+        return true;
+    }
+
+    function convertBinaryTextNode(node) {
+        if (
+            !shouldConvertBinaryText(node) ||
+            binaryTextOriginals.has(node)
+        ) {
+            return;
+        }
+
+        const original = node.nodeValue;
+
+        binaryTextOriginals.set(node, original);
+        node.nodeValue = toBinaryText(original);
+    }
+
+    function convertBinaryTree(root) {
+        if (!root) return;
+
+        if (root.nodeType === Node.TEXT_NODE) {
+            convertBinaryTextNode(root);
+            return;
+        }
+
+        const walker = document.createTreeWalker(
+            root,
+            NodeFilter.SHOW_TEXT
+        );
+
+        let node;
+
+        while ((node = walker.nextNode())) {
+            convertBinaryTextNode(node);
+        }
+    }
+
+    function restoreBinaryTree(root) {
+        if (!root) return;
+
+        const walker = document.createTreeWalker(
+            root,
+            NodeFilter.SHOW_TEXT
+        );
+
+        let node;
+
+        while ((node = walker.nextNode())) {
+            if (!binaryTextOriginals.has(node)) continue;
+
+            node.nodeValue = binaryTextOriginals.get(node);
+            binaryTextOriginals.delete(node);
+        }
+    }
+
+    function startBinaryMode() {
+        if (!document.body || binaryModeActive) return;
+
+        binaryModeActive = true;
+
+        convertBinaryTree(document.body);
+
+        binaryTextObserver = new MutationObserver(records => {
+            records.forEach(record => {
+                if (record.type === "childList") {
+                    record.addedNodes.forEach(convertBinaryTree);
+                }
+
+                if (record.type === "characterData") {
+                    const node = record.target;
+
+                    if (!shouldConvertBinaryText(node)) return;
+
+                    if (binaryTextOriginals.has(node)) {
+                        const original = binaryTextOriginals.get(node);
+
+                        if (node.nodeValue !== toBinaryText(original)) {
+                            const updatedText = node.nodeValue;
+
+                            binaryTextOriginals.set(node, updatedText);
+                            node.nodeValue = toBinaryText(updatedText);
+                        }
+                    } else {
+                        convertBinaryTextNode(node);
+                    }
+                }
+            });
+        });
+
+        binaryTextObserver.observe(document.body, {
+            childList: true,
+            subtree: true,
+            characterData: true
+        });
+    }
+
+    function stopBinaryMode() {
+        if (!binaryModeActive) return;
+
+        binaryModeActive = false;
+
+        if (binaryTextObserver) {
+            binaryTextObserver.disconnect();
+            binaryTextObserver = null;
+        }
+
+        restoreBinaryTree(document.body);
+    }
+
+    function syncBinaryMode() {
+        const enabled =
+            document.documentElement.getAttribute("data-theme") === "1960s";
+
+        if (enabled) {
+            startBinaryMode();
+        } else {
+            stopBinaryMode();
+        }
+    }
+
+    const binaryThemeWatcher = new MutationObserver(syncBinaryMode);
+
+    binaryThemeWatcher.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["data-theme"]
+    });
+
+    if (document.readyState === "loading") {
+        document.addEventListener(
+            "DOMContentLoaded",
+            syncBinaryMode,
+            { once: true }
+        );
+    }
+
+    syncBinaryMode();
     window.ShrekBookThemes = {
         set: applyTheme,
         get: getSavedTheme,
