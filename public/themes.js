@@ -568,111 +568,56 @@
     }
 
     function extractThemeIds(text) {
-        const source = String(text || "").toLowerCase();
-        const found = [];
-
-        THEMES.forEach(theme => {
-            const expression = new RegExp(
-                "(^|[^a-z0-9-])" + theme + "($|[^a-z0-9-])",
-                "i"
-            );
-            const match = expression.exec(source);
-            if (match) found.push({ theme:theme, index:match.index });
-        });
-
-        return found.sort((a, b) => a.index - b.index)
-            .map(item => item.theme)
-            .filter((theme, index, all) => all.indexOf(theme) === index);
+    const source = String(text || '').toLowerCase();
+    const found = [];
+    for (const theme of THEMES) {
+        const match = new RegExp('(^|[^a-z0-9])' + theme + '($|[^a-z0-9])', 'i').exec(source);
+        if (match) found.push({ theme, index: match.index });
     }
+    const ids = found.sort((a, b) => a.index - b.index).map(x => x.theme).filter((x, i, a) => a.indexOf(x) === i);
+    if (ids.length) return ids;
+    const normalized = source.replace(/[^a-z0-9]+/g, ' ').trim();
+    const aliases = [['shrekbook-special','shrekbook special','shrekbook','onion'],['random-colors','random colors','random colours'],['random-selection','random selection','surprise me'],['1990s','1990s','90s'],['1980s','1980s','80s','vhs'],['1970s','1970s','70s'],['1960s','1960s','60s'],['monochrome','monochrome','black and white'],['midnight','midnight'],['terminal','terminal'],['ocean','ocean'],['sunset','sunset'],['ivory','ivory','cream'],['legacy','legacy'],['dark','dark'],['default','default','normal']];
+    for (const entry of aliases) if (entry.slice(1).some(label => normalized.includes(label))) return [entry[0]];
+    return [];
+}
 
     async function requestThemeAI(prompt, onProgress) {
-        const cleanPrompt = String(prompt || "").trim();
-        if (!cleanPrompt || cleanPrompt.length > 300) {
-            throw new Error("Enter a description of up to 300 characters.");
-        }
-
-        const catalogueText = getThemeAICatalogue().map(item =>
-            item.id + ": " + item.description +
-            " Keywords: " + item.keywords.join(", ")
-        ).join("\n");
-
-        const historyText = themeAIHistory.slice(-3).map(item =>
-            "Previous request: " + item.prompt +
-            "\nPrevious recommendations: " + item.themes.join(", ")
-        ).join("\n\n");
-
-        const modelPrompt =
-            "You recommend visual themes for ShrekBook.\n" +
-            "Understand the meaning of the request, including unfamiliar references and aesthetics.\n" +
-            "Choose only IDs from this catalogue.\n" +
-            "Return three theme IDs separated by commas, best match first. No explanation.\n\n" +
-            "CATALOGUE:\n" + catalogueText + "\n\n" +
-            (historyText ? "RECENT CONVERSATION:\n" + historyText + "\n\n" : "") +
-            "CURRENT REQUEST:\n" + cleanPrompt + "\n\n" +
-            "THREE THEME IDS:";
-
-        let modelIds = [];
-        let modelError = null;
-
-        try {
-            const generator = await loadThemeAI(onProgress);
-            if (onProgress) onProgress("SmolLM2 is considering your preferences...");
-
-            const generated = await generator(modelPrompt, {
-                max_new_tokens:48,
-                do_sample:false
-            });
-
-            const fullText = generated && generated[0] &&
-                typeof generated[0].generated_text === "string"
-                    ? generated[0].generated_text
-                    : "";
-
-            const completion = fullText.startsWith(modelPrompt)
-                ? fullText.slice(modelPrompt.length)
-                : fullText;
-
-            modelIds = extractThemeIds(completion);
-        } catch (error) {
-            modelError = error;
-            console.warn("[ShrekBook Theme AI] Model unavailable:", error);
-        }
-
-        const fallbackIds = localThemeRanking(cleanPrompt);
-        const recommendations = [];
-        const seen = new Set();
-
-        modelIds.concat(fallbackIds).forEach(theme => {
-            if (recommendations.length >= 3 || !THEMES.includes(theme) || seen.has(theme)) return;
-            seen.add(theme);
-            recommendations.push({
-                theme:theme,
-                source:modelIds.includes(theme) ? "model" : "local",
-                reason:THEME_AI_DATA[theme].description
-            });
-        });
-
-        themeAIHistory.push({
-            prompt:cleanPrompt,
-            themes:recommendations.map(item => item.theme)
-        });
-        while (themeAIHistory.length > 4) themeAIHistory.shift();
-
-        const modelUsed = modelIds.length > 0 && !modelError;
-        const summary = modelUsed
-            ? "SmolLM2 generated these suggestions using your description and the 16-theme catalogue."
-            : modelError
-                ? "The model could not load, so local theme matching supplied these suggestions."
-                : "The model did not return valid theme IDs, so local matching completed the recommendations.";
-
-        if (onProgress) onProgress("Recommendations ready.");
-
-        return {
-            summary:summary,
-            modelUsed:modelUsed,
-            recommendations:recommendations
-        };
-    }
+    const cleanPrompt = String(prompt || '').trim();
+    if (!cleanPrompt || cleanPrompt.length > 300) throw new Error('Enter a description of up to 300 characters.');
+    const catalogueText = getThemeAICatalogue().map(item => item.id + ' | ' + item.label + ' | ' + item.keywords.slice(0, 5).join(', ')).join(String.fromCharCode(10));
+    const nl = String.fromCharCode(10);
+    const modelPrompt = 'You recommend ShrekBook visual themes. Understand the user request, including unfamiliar pop-culture references. Choose up to three best matches from the catalogue. Output ONLY exact theme IDs separated by commas. Do not repeat the catalogue.' + nl + nl + 'CATALOGUE:' + nl + catalogueText + nl + nl + 'USER REQUEST: ' + cleanPrompt + nl + 'THEME IDS:';
+    let modelIds = [];
+    let modelError = null;
+    try {
+        const generator = await loadThemeAI(onProgress);
+        if (onProgress) onProgress('SmolLM2 is considering your preferences...');
+        const generated = await generator(modelPrompt, { max_new_tokens: 32, do_sample: false, return_full_text: false });
+        const first = generated && generated[0];
+        let completion = typeof first === 'string' ? first : first && typeof first.generated_text === 'string' ? first.generated_text : first && Array.isArray(first.generated_text) ? first.generated_text.map(part => part.text || '').join(' ') : '';
+        const marker = 'THEME IDS:';
+        const markerIndex = completion.lastIndexOf(marker);
+        if (markerIndex >= 0) completion = completion.slice(markerIndex + marker.length);
+        else if (completion.startsWith(modelPrompt)) completion = completion.slice(modelPrompt.length);
+        modelIds = extractThemeIds(completion);
+        if (!modelIds.length) console.warn('[ShrekBook Theme AI] Unrecognized model output:', completion);
+    } catch (error) { modelError = error; console.warn('[ShrekBook Theme AI] Model unavailable:', error); }
+    const fallbackIds = localThemeRanking(cleanPrompt);
+    const recommendations = [];
+    const seen = new Set();
+    modelIds.concat(fallbackIds).forEach(theme => {
+        if (recommendations.length >= 3 || !THEMES.includes(theme) || seen.has(theme)) return;
+        seen.add(theme);
+        recommendations.push({ theme, source: modelIds.includes(theme) ? 'model' : 'local', reason: THEME_AI_DATA[theme].description });
+    });
+    themeAIHistory.push({ prompt: cleanPrompt, themes: recommendations.map(item => item.theme) });
+    while (themeAIHistory.length > 4) themeAIHistory.shift();
+    const modelUsed = modelIds.length > 0 && !modelError;
+    const summary = modelUsed ? 'SmolLM2 generated these suggestions using your description and the theme catalogue.' : modelError ? 'The model could not load, so local theme matching supplied these suggestions.' : 'The model response could not be matched to a theme ID, so local matching completed the recommendations.';
+    if (onProgress) onProgress('Recommendations ready.');
+    return { summary, modelUsed, recommendations };
+}
 
 
     /* ============================================================
