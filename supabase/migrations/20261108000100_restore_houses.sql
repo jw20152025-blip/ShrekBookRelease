@@ -174,6 +174,102 @@ revoke all on function public.create_house_purchase(uuid, text, text, bigint)
 grant execute on function public.create_house_purchase(uuid, text, text, bigint)
   to service_role;
 
+-- House upgrades are also atomic: charge only the price difference and
+-- create the newly unlocked rooms in the same transaction.
+create or replace function public.upgrade_house_purchase(
+  p_owner_id uuid,
+  p_house_id bigint,
+  p_target_house_type_id bigint
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_house public.houses%rowtype;
+  v_old_type public.house_types%rowtype;
+  v_new_type public.house_types%rowtype;
+  v_balance bigint;
+  v_existing_rooms integer;
+  v_index integer;
+  v_cost bigint;
+begin
+  select * into v_house
+  from public.houses
+  where id = p_house_id
+  for update;
+
+  if not found or v_house.owner_id <> p_owner_id then
+    raise exception 'Only the House owner can upgrade this House';
+  end if;
+
+  select * into v_old_type from public.house_types where id = v_house.house_type_id;
+  select * into v_new_type from public.house_types where id = p_target_house_type_id;
+
+  if not found or v_new_type.id is null then
+    raise exception 'Invalid upgrade type';
+  end if;
+
+  if v_new_type.room_count <= v_old_type.room_count or v_new_type.cost <= v_old_type.cost then
+    raise exception 'Choose a higher House type to upgrade';
+  end if;
+
+  v_cost := v_new_type.cost - v_old_type.cost;
+
+  select shrekcoins into v_balance
+  from public.profiles
+  where id = p_owner_id
+  for update;
+
+  if not found then raise exception 'Owner profile not found'; end if;
+  if coalesce(v_balance, 0) < v_cost then
+    raise exception 'You do not have enough ShrekCoins for this upgrade';
+  end if;
+
+  update public.profiles set shrekcoins = shrekcoins - v_cost where id = p_owner_id;
+  update public.houses set house_type_id = v_new_type.id, updated_at = now() where id = p_house_id;
+
+  select count(*) into v_existing_rooms from public.house_rooms where house_id = p_house_id;
+  if v_existing_rooms < v_new_type.room_count then
+    for v_index in (v_existing_rooms + 1)..v_new_type.room_count loop
+      insert into public.house_rooms(
+        house_id, name, room_type, description, position, owner_id, is_private
+      )
+      values (
+        p_house_id,
+        'Room ' || v_index,
+        'chat',
+        '',
+        v_index - 1,
+        null,
+        false
+      );
+    end loop;
+  end if;
+
+  if v_cost > 0 then
+    insert into public.shrekcoin_transactions(user_id, amount, reason)
+    values (p_owner_id, -v_cost, 'Upgraded House to ' || v_new_type.name);
+  end if;
+
+  select * into v_house from public.houses where id = p_house_id;
+  return jsonb_build_object(
+    'id', v_house.id,
+    'name', v_house.name,
+    'description', v_house.description,
+    'owner_id', v_house.owner_id,
+    'house_type_id', v_house.house_type_id,
+    'created_at', v_house.created_at
+  );
+end;
+$$;
+
+revoke all on function public.upgrade_house_purchase(uuid, bigint, bigint)
+  from public, anon, authenticated;
+grant execute on function public.upgrade_house_purchase(uuid, bigint, bigint)
+  to service_role;
+
 -- Integrate the existing House type benefit with marketplace purchases.
 -- tax_reduction is stored as a decimal fraction (0.0500 = 5%).
 create or replace function public.purchase_shop_item(p_buyer_id uuid, p_item_id bigint)
