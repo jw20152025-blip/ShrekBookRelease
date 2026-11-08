@@ -540,3 +540,266 @@ html:is(
 ) button:hover {
     filter: brightness(1.12);
 }
+
+/* ============================================================
+   SHREKBOOK THEME OVERRIDES — ORIGINAL STYLES.CSS
+   Dedicated Dark and Legacy component styling
+   ============================================================ */
+
+
+/* ============================================================
+   DARK — COMFORTABLE MONOCHROME
+   ============================================================ */
+
+html[data-theme="dark"] body {
+    background: #17191C;
+    color: #DADDE2;
+}
+
+html[data-theme="dark"] a {
+    color: #B7C0CE;
+}
+
+html[data-theme="dark"] button {
+    background: #343941;
+    color: #DADDE2;
+    border: 1px solid #454B55;
+    border-radius: 8px;
+}
+
+html[data-theme="dark"] input,
+html[data-theme="dark"] textarea {
+    background: #202328;
+    color: #DADDE2;
+    border: 1px solid #414650;
+    border-radius: 8px;
+}
+
+html[data-theme="dark"] .navbar {
+    background: #202328;
+    color: #DADDE2;
+}
+
+html[data-theme="dark"] .auth-box,
+html[data-theme="dark"] .create-post,
+html[data-theme="dark"] .post,
+html[data-theme="dark"] .people-section,
+html[data-theme="dark"] .telecom-section,
+html[data-theme="dark"] .chat-create,
+html[data-theme="dark"] .profile-card,
+html[data-theme="dark"] .profile-posts,
+html[data-theme="dark"] .room,
+html[data-theme="dark"] .chat-messages,
+html[data-theme="dark"] .empty-box,
+html[data-theme="dark"] .error-box,
+html[data-theme="dark"] .shrekbook-message-box {
+    background: #22252A;
+    color: #DADDE2;
+    border: 1px solid #363A42;
+    border-radius: 12px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.18);
+}
+
+html[data-theme="dark"] .person,
+html[data-theme="dark"] .stat {
+    background: #1B1E22;
+    color: #DADDE2;
+    border: 1px solid #363A42;
+}
+
+html[data-theme="dark"] .person:hover {
+    background: #292D33;
+}
+
+html[data-theme="dark"] .comments,
+html[data-theme="dark"] .chat-message {
+    background: #1B1E22;
+    color: #DADDE2;
+    border: 1px solid #363A42;
+}
+
+html[data-theme="dark"] .post-header span,
+html[data-theme="dark"] .comment span,
+html[data-theme="dark"] .chat-message span,
+html[data-theme="dark"] .profile-bio {
+    color: #9A9FA8;
+}
+
+html[data-theme="dark"] .comment {
+    border-bottom-color: #363A42;
+}
+
+html[data-theme="dark"] .avatar-placeholder {
+    background: #343941;
+    color: #DADDE2;
+}
+
+html[data-theme="dark"] .online-dot {
+    border-color: #22252A;
+}
+
+html[data-theme="dark"] .telecom-button {
+    background: #343941;
+    color: #DADDE2;
+    border: 1px solid #454B55;
+}
+
+html[data-theme="dark"] .shrekbook-message-box h2,
+html[data-theme="dark"] .shrekbook-message-box p {
+    color: #DADDE2;
+}
+
+html[data-theme="dark"] .online-status {
+    color: #70C98B;
+}
+
+html[data-theme="dark"] .offline-status {
+    color: #9298A2;
+}
+
+
+/* ============================================================
+   LEGACY — EARLY WORLD WIDE WEB
+   Inspired by 1990–1995 websites
+   ============================================================ */
+
+html[data-theme="legacy"] body {
+    background: #C0C0C0;
+    color: #000000;
+    font-family: "Times New Roman", Times, serif;
+}
+
+html[data-theme="legacy"] a {
+    color: #0000EE;
+    font-family: "Times New Roman", Times, serif;
+    text-decoration: underline;
+}
+
+html[data-theme="legacy"] a:visited {
+    color: #551A8B;
+}
+
+html[data-theme="legacy"] button {
+    background: #D4D0C8;
+    color: #000000;
+    border: 2px outset #FFFFFF;
+    border-radius: 0;
+    font-family: "Times New Roman", Times, serif;
+    font-weight: normal;
+}
+
+html[data-theme="legacy"] button:active {
+    border-style: inset;
+}
+
+html[data-theme="legacy"] input,
+html[data-theme="legacy"] textarea {
+    background: #FFFFFF;
+    color: #000000;
+    border: 2px inset #808080;
+    border-radius: 0;
+    font-family: "Times New Roman", Times, serif;
+}
+
+html[data-theme="legacy"] .navbar {
+    background: #000080;
+    color: #FFFFFF;
+    border: 2px outset #FFFFFF;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+html[data-theme="legacy"] .navbar a {
+    color: #FFFFFF;
+}
+
+html[data-theme="legacy"] .logo {
+    font-family: "Times New Roman", Times, serif;
+}
+
+html[data-theme="legacy"] .auth-box,
+html[data-theme="legacy"] .create-post,
+html[data-theme="legacy"] .post,
+html[data-theme="legacy"] .people-section,
+html[data-theme="legacy"] .telecom-section,
+html[data-theme="legacy"] .chat-create,
+html[data-theme="legacy"] .profile-card,
+html[data-theme="legacy"] .profile-posts,
+html[data-theme="legacy"] .room,
+html[data-theme="legacy"] .chat-messages,
+html[data-theme="legacy"] .empty-box,
+html[data-theme="legacy"] .error-box,
+html[data-theme="legacy"] .shrekbook-message-box {
+    background: #E0E0E0;
+    color: #000000;
+    border: 2px outset #FFFFFF;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+html[data-theme="legacy"] .person,
+html[data-theme="legacy"] .stat {
+    background: #D4D0C8;
+    color: #000000;
+    border: 1px solid #808080;
+    border-radius: 0;
+}
+
+html[data-theme="legacy"] .person:hover {
+    background: #C0C0C0;
+}
+
+html[data-theme="legacy"] .comments,
+html[data-theme="legacy"] .chat-message {
+    background: #FFFFFF;
+    color: #000000;
+    border: 1px inset #808080;
+    border-radius: 0;
+}
+
+html[data-theme="legacy"] .post-header span,
+html[data-theme="legacy"] .comment span,
+html[data-theme="legacy"] .chat-message span,
+html[data-theme="legacy"] .profile-bio {
+    color: #404040;
+}
+
+html[data-theme="legacy"] .comment {
+    border-bottom: 1px solid #808080;
+}
+
+html[data-theme="legacy"] .avatar-placeholder {
+    background: #D4D0C8;
+    color: #000000;
+    border: 1px solid #808080;
+    border-radius: 0;
+}
+
+html[data-theme="legacy"] .online-dot {
+    border-color: #E0E0E0;
+}
+
+html[data-theme="legacy"] .telecom-button {
+    background: #D4D0C8;
+    color: #0000EE;
+    border: 2px outset #FFFFFF;
+    border-radius: 0;
+    text-decoration: underline;
+}
+
+html[data-theme="legacy"] .shrekbook-message-box h2,
+html[data-theme="legacy"] .shrekbook-message-box p {
+    color: #000000;
+}
+
+html[data-theme="legacy"] .online-status {
+    color: #008000;
+}
+
+html[data-theme="legacy"] .offline-status {
+    color: #666666;
+}
+
+html[data-theme="legacy"] hr {
+    border-color: #808080;
+}

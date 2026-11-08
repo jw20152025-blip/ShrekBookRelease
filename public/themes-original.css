@@ -1,0 +1,368 @@
+﻿
+/* ============================================================
+   SHREKBOOK THEME VARIABLES
+   ============================================================ */
+
+:root {
+    --sb-bg: #ffffff;
+    --sb-surface: #f5f5f5;
+    --sb-text: #171717;
+    --sb-muted: #777777;
+    --sb-border: #dddddd;
+    --sb-accent: #398b52;
+    --sb-accent-text: #ffffff;
+}
+
+/* ============================================================
+   IVORY
+   ============================================================ */
+
+html[data-theme="ivory"] {
+    color-scheme: light;
+}
+
+/* ============================================================
+   MIDNIGHT
+   ============================================================ */
+
+html[data-theme="midnight"] {
+    color-scheme: dark;
+}
+
+/* ============================================================
+   TERMINAL
+   ============================================================ */
+
+html[data-theme="terminal"] {
+    color-scheme: dark;
+    font-family: "Courier New", monospace;
+}
+
+/* ============================================================
+   OCEAN
+   ============================================================ */
+
+html[data-theme="ocean"] {
+    color-scheme: dark;
+}
+
+/* ============================================================
+   SUNSET
+   ============================================================ */
+
+html[data-theme="sunset"] {
+    color-scheme: dark;
+}
+
+/* ============================================================
+   MONOCHROME
+   ============================================================ */
+
+html[data-theme="monochrome"] {
+    color-scheme: dark;
+}
+
+/* ============================================================
+   SHREKBOOK SPECIAL
+   ============================================================ */
+
+html[data-theme="shrekbook-special"] {
+    color-scheme: dark;
+}
+
+/* ============================================================
+   RANDOM COLORS
+   ============================================================ */
+
+html[data-theme="random-colors"] {
+    color-scheme: dark;
+}
+
+/* ============================================================
+   APPLY VARIABLES TO MAIN INTERFACE
+   ============================================================ */
+
+html[data-theme="ivory"],
+html[data-theme="midnight"],
+html[data-theme="terminal"],
+html[data-theme="ocean"],
+html[data-theme="sunset"],
+html[data-theme="monochrome"],
+html[data-theme="shrekbook-special"],
+html[data-theme="random-colors"] {
+
+    background: var(--sb-bg);
+    color: var(--sb-text);
+
+}
+
+/* Common interface elements */
+
+html[data-theme] body {
+    background-color: var(--sb-bg);
+    color: var(--sb-text);
+}
+
+html[data-theme] .navbar,
+html[data-theme] .card,
+html[data-theme] .modal,
+html[data-theme] .theme-menu,
+html[data-theme] .post,
+html[data-theme] .profile-card {
+    background-color: var(--sb-surface);
+    color: var(--sb-text);
+    border-color: var(--sb-border);
+}
+
+html[data-theme] input,
+html[data-theme] textarea,
+html[data-theme] select {
+    background-color: var(--sb-surface);
+    color: var(--sb-text);
+    border-color: var(--sb-border);
+}
+
+html[data-theme] button:not(.theme-button):not(.theme-option) {
+    border-color: var(--sb-border);
+}
+
+html[data-theme] a {
+    color: var(--sb-accent);
+}
+
+/* ============================================================
+   THEME MENU
+   ============================================================ */
+
+.theme-menu {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.theme-option.active {
+    background: var(--sb-accent);
+    color: var(--sb-accent-text);
+    font-weight: bold;
+}
+
+.theme-shuffle {
+    border-top: 1px solid var(--sb-border);
+    margin-top: 5px;
+}
+
+
+/* ============================================================
+   SHREKBOOK THEME SYSTEM v2.0
+   FULL INTERFACE INTEGRATION
+   ============================================================ */
+
+/* Theme variables */
+
+html[data-theme="ivory"],
+html[data-theme="midnight"],
+html[data-theme="terminal"],
+html[data-theme="ocean"],
+html[data-theme="sunset"],
+html[data-theme="monochrome"],
+html[data-theme="shrekbook-special"],
+html[data-theme="random-colors"] {
+    background: var(--sb-bg);
+    color: var(--sb-text);
+    color-scheme: dark;
+}
+
+/* Ivory uses a light browser color scheme */
+
+html[data-theme="ivory"] {
+    color-scheme: light;
+}
+
+/* Main page */
+
+html[data-theme] body {
+    background: var(--sb-bg);
+    color: var(--sb-text);
+}
+
+/* Navigation */
+
+html[data-theme="ivory"] .navbar,
+html[data-theme="midnight"] .navbar,
+html[data-theme="terminal"] .navbar,
+html[data-theme="ocean"] .navbar,
+html[data-theme="sunset"] .navbar,
+html[data-theme="monochrome"] .navbar,
+html[data-theme="shrekbook-special"] .navbar,
+html[data-theme="random-colors"] .navbar {
+    background: var(--sb-surface);
+    color: var(--sb-text);
+    border-bottom: 1px solid var(--sb-border);
+}
+
+html[data-theme] .navbar a {
+    color: var(--sb-text);
+}
+
+/* Main cards */
+
+html[data-theme] .auth-box,
+html[data-theme] .create-post,
+html[data-theme] .post,
+html[data-theme] .people-section,
+html[data-theme] .telecom-section,
+html[data-theme] .chat-create,
+html[data-theme] .profile-card,
+html[data-theme] .profile-posts,
+html[data-theme] .leaderboard-box,
+html[data-theme] .room,
+html[data-theme] .chat-messages,
+html[data-theme] .empty-box,
+html[data-theme] .error-box {
+    background: var(--sb-surface);
+    color: var(--sb-text);
+    border: 1px solid var(--sb-border);
+}
+
+/* People */
+
+html[data-theme] .person,
+html[data-theme] .leaderboard-user {
+    background: var(--sb-bg);
+    color: var(--sb-text);
+    border: 1px solid var(--sb-border);
+}
+
+html[data-theme] .person:hover {
+    background: var(--sb-surface);
+}
+
+/* Avatars */
+
+html[data-theme] .avatar-placeholder {
+    background: var(--sb-border);
+    color: var(--sb-text);
+}
+
+html[data-theme] .online-dot {
+    border-color: var(--sb-surface);
+}
+
+/* Comments */
+
+html[data-theme] .comments,
+html[data-theme] .chat-message {
+    background: var(--sb-bg);
+    color: var(--sb-text);
+    border: 1px solid var(--sb-border);
+}
+
+html[data-theme] .comment {
+    border-bottom-color: var(--sb-border);
+}
+
+/* Statistics */
+
+html[data-theme] .stat {
+    background: var(--sb-bg);
+    color: var(--sb-text);
+    border: 1px solid var(--sb-border);
+}
+
+/* Text */
+
+html[data-theme] .post-header span,
+html[data-theme] .comment span,
+html[data-theme] .chat-message span,
+html[data-theme] .profile-bio,
+html[data-theme] .leaderboard-username,
+html[data-theme] .leaderboard-loading,
+html[data-theme] .leaderboard-empty {
+    color: var(--sb-muted);
+}
+
+/* Forms */
+
+html[data-theme] input,
+html[data-theme] textarea,
+html[data-theme] select {
+    background: var(--sb-bg);
+    color: var(--sb-text);
+    border: 1px solid var(--sb-border);
+}
+
+html[data-theme] input::placeholder,
+html[data-theme] textarea::placeholder {
+    color: var(--sb-muted);
+}
+
+/* Buttons */
+
+html[data-theme] button:not(.theme-button):not(.theme-option) {
+    background: var(--sb-accent);
+    color: var(--sb-accent-text);
+}
+
+html[data-theme] button:hover {
+    opacity: 0.85;
+}
+
+/* Navigation buttons */
+
+html[data-theme] .jump-nav button,
+html[data-theme] .leaderboard-switcher button {
+    background: var(--sb-bg);
+    color: var(--sb-text);
+    border: 1px solid var(--sb-border);
+}
+
+html[data-theme] .leaderboard-switcher button.active {
+    background: var(--sb-accent);
+    color: var(--sb-accent-text);
+}
+
+/* Links */
+
+html[data-theme] a {
+    color: var(--sb-accent);
+}
+
+html[data-theme] .telecom-button {
+    background: var(--sb-accent);
+    color: var(--sb-accent-text);
+}
+
+/* Message popup */
+
+html[data-theme] .shrekbook-message-box {
+    background: var(--sb-surface);
+    color: var(--sb-text);
+    border: 1px solid var(--sb-border);
+}
+
+/* Theme selector */
+
+html[data-theme] .theme-menu {
+    background: var(--sb-surface);
+    color: var(--sb-text);
+    border: 1px solid var(--sb-border);
+}
+
+html[data-theme] .theme-option {
+    background: transparent;
+    color: var(--sb-text);
+}
+
+html[data-theme] .theme-option.active {
+    background: var(--sb-accent);
+    color: var(--sb-accent-text);
+}
+
+/* Miscellaneous */
+
+html[data-theme] .other-section {
+    color: var(--sb-text);
+}
+
+html[data-theme] hr {
+    border-color: var(--sb-border);
+}
