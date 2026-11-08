@@ -486,6 +486,44 @@
     let themeAIEmbedderPromise = null;
     let themeAIVectorsPromise = null;
     const themeAIHistory = [];
+    const THEME_AI_FEEDBACK_KEY = "shrekbook-theme-ai-feedback-v1";
+
+    function readThemeAIFeedback() {
+        try {
+            const saved = JSON.parse(readStorage(THEME_AI_FEEDBACK_KEY) || "{}");
+            return saved && typeof saved === "object" && !Array.isArray(saved) ? saved : {};
+        } catch {
+            return {};
+        }
+    }
+
+    function saveThemeAIFeedback(feedback) {
+        writeStorage(THEME_AI_FEEDBACK_KEY, JSON.stringify(feedback));
+    }
+
+    function getThemeAIFeedbackScore(theme) {
+        const value = Number(readThemeAIFeedback()[theme] || 0);
+        return Number.isFinite(value) ? Math.max(-5, Math.min(5, value)) : 0;
+    }
+
+    function rateThemeAITheme(theme, rating) {
+        if (!THEME_AI_CANDIDATES.includes(theme) || ![-1, 1].includes(rating)) return 0;
+        const feedback = readThemeAIFeedback();
+        const current = Number(feedback[theme] || 0);
+        const next = current === rating * 5 ? 0 : Math.max(-5, Math.min(5, current + rating));
+        if (next === 0) delete feedback[theme];
+        else feedback[theme] = next;
+        saveThemeAIFeedback(feedback);
+        return next;
+    }
+
+    function getThemeAIFeedbackSummary() {
+        const feedback = readThemeAIFeedback();
+        const entries = Object.entries(feedback).filter(([, value]) => Number(value) !== 0);
+        return entries.length;
+    }
+
+
 
     const THEME_AI_DATA = Object.fromEntries(THEMES.map(theme => {
         const profile = THEME_AI_PROFILES[theme] || {};
@@ -740,7 +778,8 @@
             ranked = semanticVectors.map(item => ({
                 theme: item.theme,
                 score: cosineSimilarity(queryVector, item.vector) +
-                    lexicalTieBreak(cleanPrompt + " " + interpretation, item.theme)
+                    lexicalTieBreak(cleanPrompt + " " + interpretation, item.theme) +
+                    (getThemeAIFeedbackScore(item.theme) * 0.018)
             })).sort((a, b) => b.score - a.score);
         } else {
             // Availability fallback only: still ranks every real theme and
@@ -757,7 +796,8 @@
             };
             ranked = THEME_AI_CANDIDATES.map(theme => ({
                 theme,
-                score: lexicalTieBreak(fallbackQuery, theme)
+                score: lexicalTieBreak(fallbackQuery, theme) +
+                    (getThemeAIFeedbackScore(theme) * 0.08)
             })).sort((a, b) =>
                 b.score - a.score || stableOrder(a.theme) - stableOrder(b.theme)
             );
@@ -887,7 +927,21 @@
         const results = document.createElement("div");
         results.className = "theme-ai-results";
 
-        panel.append(header, subtitle, modelInfo, form, status, results);
+        const learningInfo = document.createElement("small");
+        learningInfo.className = "theme-ai-learning-info";
+        learningInfo.textContent = "Personal learning: " + getThemeAIFeedbackSummary() + " theme ratings saved on this browser.";
+
+        const resetFeedback = document.createElement("button");
+        resetFeedback.type = "button";
+        resetFeedback.className = "theme-ai-reset-feedback";
+        resetFeedback.textContent = "Reset learning";
+        resetFeedback.addEventListener("click", () => {
+            saveThemeAIFeedback({});
+            learningInfo.textContent = "Personal learning: 0 theme ratings saved on this browser.";
+            status.textContent = "Your theme feedback has been reset.";
+        });
+
+        panel.append(header, subtitle, modelInfo, learningInfo, resetFeedback, form, status, results);
 
         toggle.addEventListener("click", () => {
             panel.hidden = !panel.hidden;
@@ -938,6 +992,41 @@
                         : "Catalogue fallback (models unavailable)";
 
                     card.append(name, description, source);
+
+                    const feedbackRow = document.createElement("div");
+                    feedbackRow.className = "theme-ai-feedback";
+                    const feedbackLabel = document.createElement("small");
+                    feedbackLabel.textContent = "Was this a good match?";
+                    const like = document.createElement("button");
+                    like.type = "button";
+                    like.className = "theme-ai-feedback-button";
+                    like.textContent = "👍 Good match";
+                    like.setAttribute("aria-label", "Prefer " + LABELS[theme]);
+                    const dislike = document.createElement("button");
+                    dislike.type = "button";
+                    dislike.className = "theme-ai-feedback-button";
+                    dislike.textContent = "👎 Not for me";
+                    dislike.setAttribute("aria-label", "Avoid recommending " + LABELS[theme]);
+                    like.addEventListener("click", () => {
+                        const value = rateThemeAITheme(theme, 1);
+                        learningInfo.textContent = "Personal learning: " + getThemeAIFeedbackSummary() + " theme ratings saved on this browser.";
+                        feedbackLabel.textContent = value > 0
+                            ? "Got it — I'll lean toward this theme in future recommendations."
+                            : "Preference cleared for this theme.";
+                        like.disabled = value > 0;
+                        dislike.disabled = false;
+                    });
+                    dislike.addEventListener("click", () => {
+                        const value = rateThemeAITheme(theme, -1);
+                        learningInfo.textContent = "Personal learning: " + getThemeAIFeedbackSummary() + " theme ratings saved on this browser.";
+                        feedbackLabel.textContent = value < 0
+                            ? "Got it — I'll be less likely to recommend this theme."
+                            : "Preference cleared for this theme.";
+                        dislike.disabled = value < 0;
+                        like.disabled = false;
+                    });
+                    feedbackRow.append(feedbackLabel, like, dislike);
+                    card.appendChild(feedbackRow);
 
                     const swatches = document.createElement("div");
                     swatches.className = "theme-ai-swatches";
@@ -1254,6 +1343,11 @@
                 return best ? applyTheme(best.theme) : null;
             },
             data: getThemeAICatalogue,
+            feedback: {
+                rate: rateThemeAITheme,
+                get: readThemeAIFeedback,
+                reset: () => saveThemeAIFeedback({})
+            },
             modelInfo: {
                 name: "SmolLM2-135M-Instruct",
                 parameters: 135000000,
