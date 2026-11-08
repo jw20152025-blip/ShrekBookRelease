@@ -1,6 +1,8 @@
 
 /* ============================================================
-   SHREKBOOK THEME VARIABLES
+   SHREKBOOK THEMES — CLEAN THEME SYSTEM
+   New palettes are scoped so Default, Dark and Legacy
+   can keep their existing styles.
    ============================================================ */
 
 :root {
@@ -13,150 +15,27 @@
     --sb-accent-text: #ffffff;
 }
 
-/* ============================================================
-   IVORY
-   ============================================================ */
+/* Theme-specific browser colour schemes */
 
 html[data-theme="ivory"] {
     color-scheme: light;
 }
 
-/* ============================================================
-   MIDNIGHT
-   ============================================================ */
-
-html[data-theme="midnight"] {
+html[data-theme="midnight"],
+html[data-theme="terminal"],
+html[data-theme="ocean"],
+html[data-theme="sunset"],
+html[data-theme="monochrome"],
+html[data-theme="shrekbook-special"],
+html[data-theme="random-colors"] {
     color-scheme: dark;
 }
 
-/* ============================================================
-   TERMINAL
-   ============================================================ */
-
-html[data-theme="terminal"] {
-    color-scheme: dark;
+html[data-theme="terminal"] body {
     font-family: "Courier New", monospace;
 }
 
-/* ============================================================
-   OCEAN
-   ============================================================ */
-
-html[data-theme="ocean"] {
-    color-scheme: dark;
-}
-
-/* ============================================================
-   SUNSET
-   ============================================================ */
-
-html[data-theme="sunset"] {
-    color-scheme: dark;
-}
-
-/* ============================================================
-   MONOCHROME
-   ============================================================ */
-
-html[data-theme="monochrome"] {
-    color-scheme: dark;
-}
-
-/* ============================================================
-   SHREKBOOK SPECIAL
-   ============================================================ */
-
-html[data-theme="shrekbook-special"] {
-    color-scheme: dark;
-}
-
-/* ============================================================
-   RANDOM COLORS
-   ============================================================ */
-
-html[data-theme="random-colors"] {
-    color-scheme: dark;
-}
-
-/* ============================================================
-   APPLY VARIABLES TO MAIN INTERFACE
-   ============================================================ */
-
-html[data-theme="ivory"],
-html[data-theme="midnight"],
-html[data-theme="terminal"],
-html[data-theme="ocean"],
-html[data-theme="sunset"],
-html[data-theme="monochrome"],
-html[data-theme="shrekbook-special"],
-html[data-theme="random-colors"] {
-
-    background: var(--sb-bg);
-    color: var(--sb-text);
-
-}
-
-/* Common interface elements */
-
-html[data-theme] body {
-    background-color: var(--sb-bg);
-    color: var(--sb-text);
-}
-
-html[data-theme] .navbar,
-html[data-theme] .card,
-html[data-theme] .modal,
-html[data-theme] .theme-menu,
-html[data-theme] .post,
-html[data-theme] .profile-card {
-    background-color: var(--sb-surface);
-    color: var(--sb-text);
-    border-color: var(--sb-border);
-}
-
-html[data-theme] input,
-html[data-theme] textarea,
-html[data-theme] select {
-    background-color: var(--sb-surface);
-    color: var(--sb-text);
-    border-color: var(--sb-border);
-}
-
-html[data-theme] button:not(.theme-button):not(.theme-option) {
-    border-color: var(--sb-border);
-}
-
-html[data-theme] a {
-    color: var(--sb-accent);
-}
-
-/* ============================================================
-   THEME MENU
-   ============================================================ */
-
-.theme-menu {
-    max-height: 70vh;
-    overflow-y: auto;
-}
-
-.theme-option.active {
-    background: var(--sb-accent);
-    color: var(--sb-accent-text);
-    font-weight: bold;
-}
-
-.theme-shuffle {
-    border-top: 1px solid var(--sb-border);
-    margin-top: 5px;
-}
-
-
-/* ============================================================
-   SHREKBOOK THEME SYSTEM v2.0
-   FULL INTERFACE INTEGRATION
-   ============================================================ */
-
-/* Theme variables */
+/* All new palette themes */
 
 html[data-theme="ivory"],
 html[data-theme="midnight"],
@@ -168,18 +47,16 @@ html[data-theme="shrekbook-special"],
 html[data-theme="random-colors"] {
     background: var(--sb-bg);
     color: var(--sb-text);
-    color-scheme: dark;
 }
 
-/* Ivory uses a light browser color scheme */
-
-html[data-theme="ivory"] {
-    color-scheme: light;
-}
-
-/* Main page */
-
-html[data-theme] body {
+html[data-theme="ivory"] body,
+html[data-theme="midnight"] body,
+html[data-theme="terminal"] body,
+html[data-theme="ocean"] body,
+html[data-theme="sunset"] body,
+html[data-theme="monochrome"] body,
+html[data-theme="shrekbook-special"] body,
+html[data-theme="random-colors"] body {
     background: var(--sb-bg);
     color: var(--sb-text);
 }
@@ -199,170 +76,467 @@ html[data-theme="random-colors"] .navbar {
     border-bottom: 1px solid var(--sb-border);
 }
 
-html[data-theme] .navbar a {
+html[data-theme="ivory"] .navbar a,
+html[data-theme="midnight"] .navbar a,
+html[data-theme="terminal"] .navbar a,
+html[data-theme="ocean"] .navbar a,
+html[data-theme="sunset"] .navbar a,
+html[data-theme="monochrome"] .navbar a,
+html[data-theme="shrekbook-special"] .navbar a,
+html[data-theme="random-colors"] .navbar a {
     color: var(--sb-text);
 }
 
-/* Main cards */
+/* Main panels and cards */
 
-html[data-theme] .auth-box,
-html[data-theme] .create-post,
-html[data-theme] .post,
-html[data-theme] .people-section,
-html[data-theme] .telecom-section,
-html[data-theme] .chat-create,
-html[data-theme] .profile-card,
-html[data-theme] .profile-posts,
-html[data-theme] .leaderboard-box,
-html[data-theme] .room,
-html[data-theme] .chat-messages,
-html[data-theme] .empty-box,
-html[data-theme] .error-box {
+html[data-theme="ivory"] .auth-box,
+html[data-theme="ivory"] .create-post,
+html[data-theme="ivory"] .post,
+html[data-theme="ivory"] .people-section,
+html[data-theme="ivory"] .telecom-section,
+html[data-theme="ivory"] .chat-create,
+html[data-theme="ivory"] .profile-card,
+html[data-theme="ivory"] .profile-posts,
+html[data-theme="ivory"] .leaderboard-box,
+html[data-theme="ivory"] .room,
+html[data-theme="ivory"] .chat-messages,
+html[data-theme="ivory"] .empty-box,
+html[data-theme="ivory"] .error-box,
+html[data-theme="midnight"] .auth-box,
+html[data-theme="midnight"] .create-post,
+html[data-theme="midnight"] .post,
+html[data-theme="midnight"] .people-section,
+html[data-theme="midnight"] .telecom-section,
+html[data-theme="midnight"] .chat-create,
+html[data-theme="midnight"] .profile-card,
+html[data-theme="midnight"] .profile-posts,
+html[data-theme="midnight"] .leaderboard-box,
+html[data-theme="midnight"] .room,
+html[data-theme="midnight"] .chat-messages,
+html[data-theme="midnight"] .empty-box,
+html[data-theme="midnight"] .error-box,
+html[data-theme="terminal"] .auth-box,
+html[data-theme="terminal"] .create-post,
+html[data-theme="terminal"] .post,
+html[data-theme="terminal"] .people-section,
+html[data-theme="terminal"] .telecom-section,
+html[data-theme="terminal"] .chat-create,
+html[data-theme="terminal"] .profile-card,
+html[data-theme="terminal"] .profile-posts,
+html[data-theme="terminal"] .leaderboard-box,
+html[data-theme="terminal"] .room,
+html[data-theme="terminal"] .chat-messages,
+html[data-theme="terminal"] .empty-box,
+html[data-theme="terminal"] .error-box,
+html[data-theme="ocean"] .auth-box,
+html[data-theme="ocean"] .create-post,
+html[data-theme="ocean"] .post,
+html[data-theme="ocean"] .people-section,
+html[data-theme="ocean"] .telecom-section,
+html[data-theme="ocean"] .chat-create,
+html[data-theme="ocean"] .profile-card,
+html[data-theme="ocean"] .profile-posts,
+html[data-theme="ocean"] .leaderboard-box,
+html[data-theme="ocean"] .room,
+html[data-theme="ocean"] .chat-messages,
+html[data-theme="ocean"] .empty-box,
+html[data-theme="ocean"] .error-box,
+html[data-theme="sunset"] .auth-box,
+html[data-theme="sunset"] .create-post,
+html[data-theme="sunset"] .post,
+html[data-theme="sunset"] .people-section,
+html[data-theme="sunset"] .telecom-section,
+html[data-theme="sunset"] .chat-create,
+html[data-theme="sunset"] .profile-card,
+html[data-theme="sunset"] .profile-posts,
+html[data-theme="sunset"] .leaderboard-box,
+html[data-theme="sunset"] .room,
+html[data-theme="sunset"] .chat-messages,
+html[data-theme="sunset"] .empty-box,
+html[data-theme="sunset"] .error-box,
+html[data-theme="monochrome"] .auth-box,
+html[data-theme="monochrome"] .create-post,
+html[data-theme="monochrome"] .post,
+html[data-theme="monochrome"] .people-section,
+html[data-theme="monochrome"] .telecom-section,
+html[data-theme="monochrome"] .chat-create,
+html[data-theme="monochrome"] .profile-card,
+html[data-theme="monochrome"] .profile-posts,
+html[data-theme="monochrome"] .leaderboard-box,
+html[data-theme="monochrome"] .room,
+html[data-theme="monochrome"] .chat-messages,
+html[data-theme="monochrome"] .empty-box,
+html[data-theme="monochrome"] .error-box,
+html[data-theme="shrekbook-special"] .auth-box,
+html[data-theme="shrekbook-special"] .create-post,
+html[data-theme="shrekbook-special"] .post,
+html[data-theme="shrekbook-special"] .people-section,
+html[data-theme="shrekbook-special"] .telecom-section,
+html[data-theme="shrekbook-special"] .chat-create,
+html[data-theme="shrekbook-special"] .profile-card,
+html[data-theme="shrekbook-special"] .profile-posts,
+html[data-theme="shrekbook-special"] .leaderboard-box,
+html[data-theme="shrekbook-special"] .room,
+html[data-theme="shrekbook-special"] .chat-messages,
+html[data-theme="shrekbook-special"] .empty-box,
+html[data-theme="shrekbook-special"] .error-box,
+html[data-theme="random-colors"] .auth-box,
+html[data-theme="random-colors"] .create-post,
+html[data-theme="random-colors"] .post,
+html[data-theme="random-colors"] .people-section,
+html[data-theme="random-colors"] .telecom-section,
+html[data-theme="random-colors"] .chat-create,
+html[data-theme="random-colors"] .profile-card,
+html[data-theme="random-colors"] .profile-posts,
+html[data-theme="random-colors"] .leaderboard-box,
+html[data-theme="random-colors"] .room,
+html[data-theme="random-colors"] .chat-messages,
+html[data-theme="random-colors"] .empty-box,
+html[data-theme="random-colors"] .error-box {
     background: var(--sb-surface);
     color: var(--sb-text);
-    border: 1px solid var(--sb-border);
+    border-color: var(--sb-border);
 }
 
-/* People */
+/* Secondary panels */
 
-html[data-theme] .person,
-html[data-theme] .leaderboard-user {
+html[data-theme="ivory"] .person,
+html[data-theme="ivory"] .leaderboard-user,
+html[data-theme="ivory"] .comments,
+html[data-theme="ivory"] .chat-message,
+html[data-theme="ivory"] .stat,
+html[data-theme="midnight"] .person,
+html[data-theme="midnight"] .leaderboard-user,
+html[data-theme="midnight"] .comments,
+html[data-theme="midnight"] .chat-message,
+html[data-theme="midnight"] .stat,
+html[data-theme="terminal"] .person,
+html[data-theme="terminal"] .leaderboard-user,
+html[data-theme="terminal"] .comments,
+html[data-theme="terminal"] .chat-message,
+html[data-theme="terminal"] .stat,
+html[data-theme="ocean"] .person,
+html[data-theme="ocean"] .leaderboard-user,
+html[data-theme="ocean"] .comments,
+html[data-theme="ocean"] .chat-message,
+html[data-theme="ocean"] .stat,
+html[data-theme="sunset"] .person,
+html[data-theme="sunset"] .leaderboard-user,
+html[data-theme="sunset"] .comments,
+html[data-theme="sunset"] .chat-message,
+html[data-theme="sunset"] .stat,
+html[data-theme="monochrome"] .person,
+html[data-theme="monochrome"] .leaderboard-user,
+html[data-theme="monochrome"] .comments,
+html[data-theme="monochrome"] .chat-message,
+html[data-theme="monochrome"] .stat,
+html[data-theme="shrekbook-special"] .person,
+html[data-theme="shrekbook-special"] .leaderboard-user,
+html[data-theme="shrekbook-special"] .comments,
+html[data-theme="shrekbook-special"] .chat-message,
+html[data-theme="shrekbook-special"] .stat,
+html[data-theme="random-colors"] .person,
+html[data-theme="random-colors"] .leaderboard-user,
+html[data-theme="random-colors"] .comments,
+html[data-theme="random-colors"] .chat-message,
+html[data-theme="random-colors"] .stat {
     background: var(--sb-bg);
     color: var(--sb-text);
-    border: 1px solid var(--sb-border);
+    border-color: var(--sb-border);
 }
 
-html[data-theme] .person:hover {
-    background: var(--sb-surface);
-}
+/* Text and separators */
 
-/* Avatars */
-
-html[data-theme] .avatar-placeholder {
-    background: var(--sb-border);
-    color: var(--sb-text);
-}
-
-html[data-theme] .online-dot {
-    border-color: var(--sb-surface);
-}
-
-/* Comments */
-
-html[data-theme] .comments,
-html[data-theme] .chat-message {
-    background: var(--sb-bg);
-    color: var(--sb-text);
-    border: 1px solid var(--sb-border);
-}
-
-html[data-theme] .comment {
-    border-bottom-color: var(--sb-border);
-}
-
-/* Statistics */
-
-html[data-theme] .stat {
-    background: var(--sb-bg);
-    color: var(--sb-text);
-    border: 1px solid var(--sb-border);
-}
-
-/* Text */
-
-html[data-theme] .post-header span,
-html[data-theme] .comment span,
-html[data-theme] .chat-message span,
-html[data-theme] .profile-bio,
-html[data-theme] .leaderboard-username,
-html[data-theme] .leaderboard-loading,
-html[data-theme] .leaderboard-empty {
+html[data-theme="ivory"] .post-header span,
+html[data-theme="ivory"] .comment span,
+html[data-theme="ivory"] .chat-message span,
+html[data-theme="ivory"] .profile-bio,
+html[data-theme="ivory"] .leaderboard-username,
+html[data-theme="ivory"] .leaderboard-loading,
+html[data-theme="ivory"] .leaderboard-empty,
+html[data-theme="midnight"] .post-header span,
+html[data-theme="midnight"] .comment span,
+html[data-theme="midnight"] .chat-message span,
+html[data-theme="midnight"] .profile-bio,
+html[data-theme="midnight"] .leaderboard-username,
+html[data-theme="midnight"] .leaderboard-loading,
+html[data-theme="midnight"] .leaderboard-empty,
+html[data-theme="terminal"] .post-header span,
+html[data-theme="terminal"] .comment span,
+html[data-theme="terminal"] .chat-message span,
+html[data-theme="terminal"] .profile-bio,
+html[data-theme="terminal"] .leaderboard-username,
+html[data-theme="terminal"] .leaderboard-loading,
+html[data-theme="terminal"] .leaderboard-empty,
+html[data-theme="ocean"] .post-header span,
+html[data-theme="ocean"] .comment span,
+html[data-theme="ocean"] .chat-message span,
+html[data-theme="ocean"] .profile-bio,
+html[data-theme="ocean"] .leaderboard-username,
+html[data-theme="ocean"] .leaderboard-loading,
+html[data-theme="ocean"] .leaderboard-empty,
+html[data-theme="sunset"] .post-header span,
+html[data-theme="sunset"] .comment span,
+html[data-theme="sunset"] .chat-message span,
+html[data-theme="sunset"] .profile-bio,
+html[data-theme="sunset"] .leaderboard-username,
+html[data-theme="sunset"] .leaderboard-loading,
+html[data-theme="sunset"] .leaderboard-empty,
+html[data-theme="monochrome"] .post-header span,
+html[data-theme="monochrome"] .comment span,
+html[data-theme="monochrome"] .chat-message span,
+html[data-theme="monochrome"] .profile-bio,
+html[data-theme="monochrome"] .leaderboard-username,
+html[data-theme="monochrome"] .leaderboard-loading,
+html[data-theme="monochrome"] .leaderboard-empty,
+html[data-theme="shrekbook-special"] .post-header span,
+html[data-theme="shrekbook-special"] .comment span,
+html[data-theme="shrekbook-special"] .chat-message span,
+html[data-theme="shrekbook-special"] .profile-bio,
+html[data-theme="shrekbook-special"] .leaderboard-username,
+html[data-theme="shrekbook-special"] .leaderboard-loading,
+html[data-theme="shrekbook-special"] .leaderboard-empty,
+html[data-theme="random-colors"] .post-header span,
+html[data-theme="random-colors"] .comment span,
+html[data-theme="random-colors"] .chat-message span,
+html[data-theme="random-colors"] .profile-bio,
+html[data-theme="random-colors"] .leaderboard-username,
+html[data-theme="random-colors"] .leaderboard-loading,
+html[data-theme="random-colors"] .leaderboard-empty {
     color: var(--sb-muted);
+}
+
+html[data-theme="ivory"] hr,
+html[data-theme="midnight"] hr,
+html[data-theme="terminal"] hr,
+html[data-theme="ocean"] hr,
+html[data-theme="sunset"] hr,
+html[data-theme="monochrome"] hr,
+html[data-theme="shrekbook-special"] hr,
+html[data-theme="random-colors"] hr {
+    border-color: var(--sb-border);
 }
 
 /* Forms */
 
-html[data-theme] input,
-html[data-theme] textarea,
-html[data-theme] select {
+html[data-theme="ivory"] input,
+html[data-theme="ivory"] textarea,
+html[data-theme="ivory"] select,
+html[data-theme="midnight"] input,
+html[data-theme="midnight"] textarea,
+html[data-theme="midnight"] select,
+html[data-theme="terminal"] input,
+html[data-theme="terminal"] textarea,
+html[data-theme="terminal"] select,
+html[data-theme="ocean"] input,
+html[data-theme="ocean"] textarea,
+html[data-theme="ocean"] select,
+html[data-theme="sunset"] input,
+html[data-theme="sunset"] textarea,
+html[data-theme="sunset"] select,
+html[data-theme="monochrome"] input,
+html[data-theme="monochrome"] textarea,
+html[data-theme="monochrome"] select,
+html[data-theme="shrekbook-special"] input,
+html[data-theme="shrekbook-special"] textarea,
+html[data-theme="shrekbook-special"] select,
+html[data-theme="random-colors"] input,
+html[data-theme="random-colors"] textarea,
+html[data-theme="random-colors"] select {
     background: var(--sb-bg);
     color: var(--sb-text);
     border: 1px solid var(--sb-border);
 }
 
-html[data-theme] input::placeholder,
-html[data-theme] textarea::placeholder {
+html[data-theme="ivory"] input::placeholder,
+html[data-theme="ivory"] textarea::placeholder,
+html[data-theme="midnight"] input::placeholder,
+html[data-theme="midnight"] textarea::placeholder,
+html[data-theme="terminal"] input::placeholder,
+html[data-theme="terminal"] textarea::placeholder,
+html[data-theme="ocean"] input::placeholder,
+html[data-theme="ocean"] textarea::placeholder,
+html[data-theme="sunset"] input::placeholder,
+html[data-theme="sunset"] textarea::placeholder,
+html[data-theme="monochrome"] input::placeholder,
+html[data-theme="monochrome"] textarea::placeholder,
+html[data-theme="shrekbook-special"] input::placeholder,
+html[data-theme="shrekbook-special"] textarea::placeholder,
+html[data-theme="random-colors"] input::placeholder,
+html[data-theme="random-colors"] textarea::placeholder {
     color: var(--sb-muted);
 }
 
 /* Buttons */
 
-html[data-theme] button:not(.theme-button):not(.theme-option) {
-    background: var(--sb-accent);
-    color: var(--sb-accent-text);
+html[data-theme="ivory"] button:not(.theme-shuffle),
+html[data-theme="midnight"] button:not(.theme-shuffle),
+html[data-theme="terminal"] button:not(.theme-shuffle),
+html[data-theme="ocean"] button:not(.theme-shuffle),
+html[data-theme="sunset"] button:not(.theme-shuffle),
+html[data-theme="monochrome"] button:not(.theme-shuffle),
+html[data-theme="shrekbook-special"] button:not(.theme-shuffle),
+html[data-theme="random-colors"] button:not(.theme-shuffle) {
+    border-color: var(--sb-border);
 }
 
-html[data-theme] button:hover {
-    opacity: 0.85;
-}
-
-/* Navigation buttons */
-
-html[data-theme] .jump-nav button,
-html[data-theme] .leaderboard-switcher button {
-    background: var(--sb-bg);
-    color: var(--sb-text);
-    border: 1px solid var(--sb-border);
-}
-
-html[data-theme] .leaderboard-switcher button.active {
+html[data-theme="ivory"] .telecom-button,
+html[data-theme="ivory"] .leaderboard-switcher button.active,
+html[data-theme="ivory"] .jump-nav button.active,
+html[data-theme="midnight"] .telecom-button,
+html[data-theme="midnight"] .leaderboard-switcher button.active,
+html[data-theme="midnight"] .jump-nav button.active,
+html[data-theme="terminal"] .telecom-button,
+html[data-theme="terminal"] .leaderboard-switcher button.active,
+html[data-theme="terminal"] .jump-nav button.active,
+html[data-theme="ocean"] .telecom-button,
+html[data-theme="ocean"] .leaderboard-switcher button.active,
+html[data-theme="ocean"] .jump-nav button.active,
+html[data-theme="sunset"] .telecom-button,
+html[data-theme="sunset"] .leaderboard-switcher button.active,
+html[data-theme="sunset"] .jump-nav button.active,
+html[data-theme="monochrome"] .telecom-button,
+html[data-theme="monochrome"] .leaderboard-switcher button.active,
+html[data-theme="monochrome"] .jump-nav button.active,
+html[data-theme="shrekbook-special"] .telecom-button,
+html[data-theme="shrekbook-special"] .leaderboard-switcher button.active,
+html[data-theme="shrekbook-special"] .jump-nav button.active,
+html[data-theme="random-colors"] .telecom-button,
+html[data-theme="random-colors"] .leaderboard-switcher button.active,
+html[data-theme="random-colors"] .jump-nav button.active {
     background: var(--sb-accent);
     color: var(--sb-accent-text);
 }
 
 /* Links */
 
-html[data-theme] a {
+html[data-theme="ivory"] a,
+html[data-theme="midnight"] a,
+html[data-theme="terminal"] a,
+html[data-theme="ocean"] a,
+html[data-theme="sunset"] a,
+html[data-theme="monochrome"] a,
+html[data-theme="shrekbook-special"] a,
+html[data-theme="random-colors"] a {
     color: var(--sb-accent);
 }
 
-html[data-theme] .telecom-button {
-    background: var(--sb-accent);
-    color: var(--sb-accent-text);
-}
+/* Popups */
 
-/* Message popup */
-
-html[data-theme] .shrekbook-message-box {
+html[data-theme="ivory"] .shrekbook-message-box,
+html[data-theme="midnight"] .shrekbook-message-box,
+html[data-theme="terminal"] .shrekbook-message-box,
+html[data-theme="ocean"] .shrekbook-message-box,
+html[data-theme="sunset"] .shrekbook-message-box,
+html[data-theme="monochrome"] .shrekbook-message-box,
+html[data-theme="shrekbook-special"] .shrekbook-message-box,
+html[data-theme="random-colors"] .shrekbook-message-box {
     background: var(--sb-surface);
     color: var(--sb-text);
     border: 1px solid var(--sb-border);
 }
 
-/* Theme selector */
+/* Theme selector dropdown */
 
-html[data-theme] .theme-menu {
+.theme-selector {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+    margin-left: 10px;
+    vertical-align: middle;
+}
+
+.theme-selector select {
+    max-width: 190px;
+    min-width: 145px;
+    padding: 8px 30px 8px 10px;
+    border: 1px solid #888;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #222222;
+    font: inherit;
+    cursor: pointer;
+}
+
+.theme-selector .theme-shuffle {
+    padding: 8px 10px;
+    border: 1px solid #888;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #222222;
+    cursor: pointer;
+}
+
+.theme-selector .theme-shuffle:hover,
+.theme-selector select:hover {
+    filter: brightness(0.94);
+}
+
+.theme-selector .theme-shuffle:focus-visible,
+.theme-selector select:focus-visible {
+    outline: 3px solid var(--sb-accent, #398b52);
+    outline-offset: 2px;
+}
+
+/* Match selector to active new palette */
+
+html[data-theme="ivory"] .theme-selector select,
+html[data-theme="ivory"] .theme-selector .theme-shuffle,
+html[data-theme="midnight"] .theme-selector select,
+html[data-theme="midnight"] .theme-selector .theme-shuffle,
+html[data-theme="terminal"] .theme-selector select,
+html[data-theme="terminal"] .theme-selector .theme-shuffle,
+html[data-theme="ocean"] .theme-selector select,
+html[data-theme="ocean"] .theme-selector .theme-shuffle,
+html[data-theme="sunset"] .theme-selector select,
+html[data-theme="sunset"] .theme-selector .theme-shuffle,
+html[data-theme="monochrome"] .theme-selector select,
+html[data-theme="monochrome"] .theme-selector .theme-shuffle,
+html[data-theme="shrekbook-special"] .theme-selector select,
+html[data-theme="shrekbook-special"] .theme-selector .theme-shuffle,
+html[data-theme="random-colors"] .theme-selector select,
+html[data-theme="random-colors"] .theme-selector .theme-shuffle {
     background: var(--sb-surface);
     color: var(--sb-text);
-    border: 1px solid var(--sb-border);
-}
-
-html[data-theme] .theme-option {
-    background: transparent;
-    color: var(--sb-text);
-}
-
-html[data-theme] .theme-option.active {
-    background: var(--sb-accent);
-    color: var(--sb-accent-text);
-}
-
-/* Miscellaneous */
-
-html[data-theme] .other-section {
-    color: var(--sb-text);
-}
-
-html[data-theme] hr {
     border-color: var(--sb-border);
+}
+
+/* Small screens */
+
+@media (max-width: 650px) {
+    .theme-selector {
+        margin: 6px 0;
+    }
+
+    .theme-selector select {
+        min-width: 125px;
+        max-width: 160px;
+    }
+}
+html:is(
+    [data-theme="ivory"],
+    [data-theme="midnight"],
+    [data-theme="terminal"],
+    [data-theme="ocean"],
+    [data-theme="sunset"],
+    [data-theme="monochrome"],
+    [data-theme="shrekbook-special"],
+    [data-theme="random-colors"]
+) button:not(.theme-shuffle) {
+    background-color: var(--sb-accent);
+    color: var(--sb-accent-text);
+}
+
+html:is(
+    [data-theme="ivory"],
+    [data-theme="midnight"],
+    [data-theme="terminal"],
+    [data-theme="ocean"],
+    [data-theme="sunset"],
+    [data-theme="monochrome"],
+    [data-theme="shrekbook-special"],
+    [data-theme="random-colors"]
+) button:hover {
+    filter: brightness(1.12);
 }

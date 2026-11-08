@@ -32,93 +32,23 @@
      ================================================== -->
 
 <script>
-
     (function () {
-        "use strict";
-
-        const theme = localStorage.getItem("shrekbook-theme");
-
-        const validThemes = [
-            "default",
-            "dark",
-            "legacy",
-            "ivory",
-            "midnight",
-            "terminal",
-            "ocean",
-            "sunset",
-            "monochrome",
-            "shrekbook-special",
-            "random-colors",
-            "random-selection"
+        const allowed = [
+            "default", "dark", "legacy", "ivory", "midnight",
+            "terminal", "ocean", "sunset", "monochrome",
+            "shrekbook-special", "random-colors"
         ];
 
-        if (!validThemes.includes(theme)) {
-            return;
-        }
+        try {
+            const theme = localStorage.getItem("shrekbook-theme");
 
-        const root = document.documentElement;
-
-        const actualTheme =
-            theme === "random-selection" ? "default" : theme;
-
-        if (actualTheme === "default") {
-            root.removeAttribute("data-theme");
-        } else {
-            root.setAttribute("data-theme", actualTheme);
-        }
-
-        const palettes = {
-            ivory: ["#f7f3e9", "#fffdf7", "#38352e", "#817b70", "#e5dfd2", "#ad8950", "#ffffff"],
-            midnight: ["#11111f", "#1c1b30", "#eeeaff", "#aaa4c5", "#35314f", "#9875ed", "#ffffff"],
-            terminal: ["#080d08", "#101910", "#8cff8c", "#55ad65", "#244b2b", "#36ed62", "#061008"],
-            ocean: ["#071b2d", "#102b42", "#e2f5ff", "#91b7ce", "#244760", "#20b9df", "#06202c"],
-            sunset: ["#27151b", "#3b2026", "#fff0e7", "#d4a69a", "#59333a", "#ff895c", "#35140c"],
-            monochrome: ["#111111", "#222222", "#f5f5f5", "#aaaaaa", "#444444", "#ffffff", "#111111"],
-            "shrekbook-special": ["#101b0c", "#1d2c16", "#f1f7df", "#b2c58b", "#40572c", "#a5c94b", "#17200b"]
-        };
-
-        const variables = [
-            "--sb-bg",
-            "--sb-surface",
-            "--sb-text",
-            "--sb-muted",
-            "--sb-border",
-            "--sb-accent",
-            "--sb-accent-text"
-        ];
-
-        let palette = palettes[actualTheme];
-
-        if (actualTheme === "random-colors") {
-            try {
-                const saved = JSON.parse(
-                    localStorage.getItem("shrekbook-random-colors")
-                );
-
-                if (saved) {
-                    palette = [
-                        saved.bg,
-                        saved.surface,
-                        saved.text,
-                        saved.muted,
-                        saved.border,
-                        saved.accent,
-                        saved.accentText
-                    ];
-                }
-            } catch (error) {
-                // Main theme script will generate a valid palette.
+            if (allowed.includes(theme) && theme !== "default") {
+                document.documentElement.setAttribute("data-theme", theme);
             }
-        }
-
-        if (palette) {
-            variables.forEach((variable, index) => {
-                root.style.setProperty(variable, palette[index]);
-            });
+        } catch (error) {
+            // The main theme script handles the default.
         }
     })();
-
 </script>
 
 

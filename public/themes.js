@@ -1,15 +1,11 @@
 
 /* ============================================================
-   SHREKBOOK THEME SYSTEM v2.0
-   12 THEME MODES
+   SHREKBOOK THEME SYSTEM v3.0
+   Dropdown selector, persistent themes, random palettes.
    ============================================================ */
 
 (function () {
     "use strict";
-
-    /* ========================================================
-       STORAGE
-       ======================================================== */
 
     const STORAGE_KEY = "shrekbook-theme";
     const RANDOM_COLORS_KEY = "shrekbook-random-colors";
@@ -30,200 +26,213 @@
     ];
 
     const FIXED_THEMES = THEMES.filter(theme =>
-        !["random-colors", "random-selection"].includes(theme)
+        theme !== "random-colors" &&
+        theme !== "random-selection"
     );
 
-    const PALETTE_VARIABLES = [
-        "--sb-bg",
-        "--sb-surface",
-        "--sb-text",
-        "--sb-muted",
-        "--sb-border",
-        "--sb-accent",
-        "--sb-accent-text"
-    ];
-
-    /* ========================================================
-       THEME PALETTES
-       ======================================================== */
-
     const PALETTES = {
-
         ivory: {
-            bg: "#f7f3e9",
-            surface: "#fffdf7",
-            text: "#38352e",
-            muted: "#817b70",
-            border: "#e5dfd2",
-            accent: "#ad8950",
+            bg: "#f7f1df",
+            surface: "#fffdf5",
+            text: "#403727",
+            muted: "#82745e",
+            border: "#e3d5b9",
+            accent: "#a66d28",
             accentText: "#ffffff"
         },
 
         midnight: {
-            bg: "#11111f",
-            surface: "#1c1b30",
-            text: "#eeeaff",
-            muted: "#aaa4c5",
-            border: "#35314f",
-            accent: "#9875ed",
-            accentText: "#ffffff"
+            bg: "#101525",
+            surface: "#1b2540",
+            text: "#e9efff",
+            muted: "#9eaccb",
+            border: "#344365",
+            accent: "#6e9cff",
+            accentText: "#071326"
         },
 
         terminal: {
-            bg: "#080d08",
-            surface: "#101910",
-            text: "#8cff8c",
-            muted: "#55ad65",
-            border: "#244b2b",
-            accent: "#36ed62",
-            accentText: "#061008"
+            bg: "#050b07",
+            surface: "#0d1910",
+            text: "#9cffad",
+            muted: "#58a96c",
+            border: "#245b34",
+            accent: "#31ed72",
+            accentText: "#031008"
         },
 
         ocean: {
-            bg: "#071b2d",
-            surface: "#102b42",
-            text: "#e2f5ff",
-            muted: "#91b7ce",
-            border: "#244760",
-            accent: "#20b9df",
-            accentText: "#06202c"
+            bg: "#061e2a",
+            surface: "#0c3443",
+            text: "#e0fbff",
+            muted: "#8dbdca",
+            border: "#246174",
+            accent: "#22c5c7",
+            accentText: "#032629"
         },
 
         sunset: {
-            bg: "#27151b",
-            surface: "#3b2026",
-            text: "#fff0e7",
-            muted: "#d4a69a",
-            border: "#59333a",
-            accent: "#ff895c",
-            accentText: "#35140c"
+            bg: "#2b1722",
+            surface: "#482536",
+            text: "#fff0e6",
+            muted: "#d7a5a1",
+            border: "#70404c",
+            accent: "#ff815b",
+            accentText: "#32130e"
         },
 
         monochrome: {
-            bg: "#111111",
-            surface: "#222222",
-            text: "#f5f5f5",
+            bg: "#101010",
+            surface: "#242424",
+            text: "#f4f4f4",
             muted: "#aaaaaa",
-            border: "#444444",
+            border: "#4b4b4b",
             accent: "#ffffff",
             accentText: "#111111"
         },
 
         "shrekbook-special": {
-            bg: "#101b0c",
-            surface: "#1d2c16",
-            text: "#f1f7df",
-            muted: "#b2c58b",
-            border: "#40572c",
-            accent: "#a5c94b",
+            bg: "#14200c",
+            surface: "#263719",
+            text: "#f0f7d9",
+            muted: "#b3c88c",
+            border: "#526d35",
+            accent: "#b1d84c",
             accentText: "#17200b"
         }
     };
 
-    /* ========================================================
-       RANDOM COLOR GENERATOR
-       ======================================================== */
+    const LABELS = {
+        default: "☀️ Default",
+        dark: "🌑 Dark",
+        legacy: "🕰️ Legacy",
+        ivory: "🤍 Ivory",
+        midnight: "🌌 Midnight",
+        terminal: "💻 Terminal",
+        ocean: "🌊 Ocean",
+        sunset: "🌅 Sunset",
+        monochrome: "⚫ Monochrome",
+        "shrekbook-special": "🧅 ShrekBook Special",
+        "random-colors": "🌈 Random Colors",
+        "random-selection": "🎲 Random Selection"
+    };
+
+    let selector;
+    let shuffleButton;
+
+    function readStorage(key) {
+        try {
+            return localStorage.getItem(key);
+        } catch {
+            return null;
+        }
+    }
+
+    function writeStorage(key, value) {
+        try {
+            localStorage.setItem(key, value);
+        } catch {
+            // The theme still works for the current page.
+        }
+    }
+
+    function getSavedTheme() {
+        const saved = readStorage(STORAGE_KEY);
+        return THEMES.includes(saved) ? saved : "default";
+    }
 
     function generateRandomPalette() {
-
         const hue = Math.floor(Math.random() * 360);
 
-        const accentHue = (hue + 35) % 360;
+        // Choose a separate accent hue, avoiding the same
+        // predictable purple combination every time.
+        const accentHue = (hue + 70 + Math.floor(Math.random() * 180)) % 360;
+
+        const saturation = 28 + Math.floor(Math.random() * 38);
+        const accentSaturation = 65 + Math.floor(Math.random() * 25);
 
         return {
-            bg: `hsl(${hue}, 25%, 9%)`,
-            surface: `hsl(${hue}, 25%, 15%)`,
-            text: `hsl(${hue}, 15%, 95%)`,
-            muted: `hsl(${hue}, 12%, 68%)`,
-            border: `hsl(${hue}, 20%, 27%)`,
-            accent: `hsl(${accentHue}, 75%, 65%)`,
-            accentText: "#111111"
+            bg: `hsl(${hue}, ${saturation}%, 9%)`,
+            surface: `hsl(${hue}, ${saturation}%, 15%)`,
+            text: `hsl(${hue}, 18%, 96%)`,
+            muted: `hsl(${hue}, 15%, 68%)`,
+            border: `hsl(${hue}, ${saturation}%, 28%)`,
+            accent: `hsl(${accentHue}, ${accentSaturation}%, 65%)`,
+            accentText: "#101010"
         };
     }
 
     function getRandomPalette() {
-
         try {
-            const saved = JSON.parse(
-                localStorage.getItem(RANDOM_COLORS_KEY)
-            );
+            const saved = JSON.parse(readStorage(RANDOM_COLORS_KEY));
 
             if (
                 saved &&
-                Object.keys(PALETTES.ivory).every(key =>
-                    typeof saved[key] === "string"
-                )
+                ["bg", "surface", "text", "muted", "border", "accent", "accentText"]
+                    .every(key => typeof saved[key] === "string")
             ) {
                 return saved;
             }
-        } catch (error) {
-            // Generate a new palette if storage is invalid.
+        } catch {
+            // Generate a replacement palette below.
         }
 
         const palette = generateRandomPalette();
-
         saveRandomPalette(palette);
-
         return palette;
     }
 
     function saveRandomPalette(palette) {
-
-        localStorage.setItem(
-            RANDOM_COLORS_KEY,
-            JSON.stringify(palette)
-        );
+        writeStorage(RANDOM_COLORS_KEY, JSON.stringify(palette));
     }
 
-    /* ========================================================
-       APPLY CSS VARIABLES
-       ======================================================== */
-
     function applyPalette(palette) {
-
         const root = document.documentElement;
 
-        const values = {
-            "--sb-bg": palette.bg,
-            "--sb-surface": palette.surface,
-            "--sb-text": palette.text,
-            "--sb-muted": palette.muted,
-            "--sb-border": palette.border,
-            "--sb-accent": palette.accent,
-            "--sb-accent-text": palette.accentText
-        };
-
-        Object.entries(values).forEach(([key, value]) => {
-            root.style.setProperty(key, value);
-        });
+        root.style.setProperty("--sb-bg", palette.bg);
+        root.style.setProperty("--sb-surface", palette.surface);
+        root.style.setProperty("--sb-text", palette.text);
+        root.style.setProperty("--sb-muted", palette.muted);
+        root.style.setProperty("--sb-border", palette.border);
+        root.style.setProperty("--sb-accent", palette.accent);
+        root.style.setProperty("--sb-accent-text", palette.accentText);
     }
 
     function clearPalette() {
-
         const root = document.documentElement;
 
-        PALETTE_VARIABLES.forEach(variable => {
+        [
+            "--sb-bg",
+            "--sb-surface",
+            "--sb-text",
+            "--sb-muted",
+            "--sb-border",
+            "--sb-accent",
+            "--sb-accent-text"
+        ].forEach(variable => {
             root.style.removeProperty(variable);
         });
     }
 
-    /* ========================================================
-       STORAGE
-       ======================================================== */
+    function updateSelector(theme) {
+        if (!selector) return;
 
-    function getSavedTheme() {
+        selector.value = theme;
 
-        const saved = localStorage.getItem(STORAGE_KEY);
-
-        return THEMES.includes(saved) ? saved : "default";
+        if (shuffleButton) {
+            shuffleButton.hidden = theme !== "random-colors";
+        }
     }
 
-    /* ========================================================
-       APPLY THEME
-       ======================================================== */
+    function dispatchThemeChange(theme) {
+        window.dispatchEvent(
+            new CustomEvent("shrekbook:themechange", {
+                detail: { theme }
+            })
+        );
+    }
 
     function applyTheme(theme) {
-
         if (theme === "random-selection") {
             return selectRandomTheme();
         }
@@ -237,13 +246,9 @@
         clearPalette();
 
         if (theme === "default") {
-
             root.removeAttribute("data-theme");
-
         } else {
-
             root.setAttribute("data-theme", theme);
-
         }
 
         if (PALETTES[theme]) {
@@ -254,48 +259,28 @@
             applyPalette(getRandomPalette());
         }
 
-        localStorage.setItem(STORAGE_KEY, theme);
-
-        updateThemeButtons(theme);
-
-        window.dispatchEvent(
-            new CustomEvent("shrekbook:themechange", {
-                detail: { theme }
-            })
-        );
+        writeStorage(STORAGE_KEY, theme);
+        updateSelector(theme);
+        dispatchThemeChange(theme);
 
         return theme;
     }
 
-    /* ========================================================
-       RANDOM SELECTION
-       ======================================================== */
-
     function selectRandomTheme() {
-
         const current = getSavedTheme();
 
-        let available = FIXED_THEMES.filter(
-            theme => theme !== current
+        const choices = FIXED_THEMES.filter(theme =>
+            theme !== current
         );
 
-        if (available.length === 0) {
-            available = FIXED_THEMES;
-        }
-
-        const selected = available[
-            Math.floor(Math.random() * available.length)
+        const selected = choices[
+            Math.floor(Math.random() * choices.length)
         ];
 
         return applyTheme(selected);
     }
 
-    /* ========================================================
-       RANDOM COLORS REFRESH
-       ======================================================== */
-
     function shuffleColors() {
-
         const palette = generateRandomPalette();
 
         saveRandomPalette(palette);
@@ -304,207 +289,123 @@
             applyTheme("random-colors");
         } else {
             applyPalette(palette);
-
-            window.dispatchEvent(
-                new CustomEvent("shrekbook:themechange", {
-                    detail: { theme: "random-colors" }
-                })
-            );
+            dispatchThemeChange("random-colors");
         }
+
+        updateSelector("random-colors");
 
         return palette;
     }
 
-    /* ========================================================
-       THEME BUTTON STATES
-       ======================================================== */
-
-    function updateThemeButtons(theme) {
-
-        document.querySelectorAll(".theme-option")
-            .forEach(button => {
-
-                button.classList.toggle(
-                    "active",
-                    button.dataset.theme === theme
-                );
-
-            });
-    }
-
-    /* ========================================================
-       THEME SELECTOR
-       ======================================================== */
-
     function createThemeSelector() {
+        if (document.getElementById("theme-selector")) return;
 
         const nav = document.querySelector(".navbar nav");
-
-        if (!nav || document.getElementById("theme-selector")) {
-            return;
-        }
+        if (!nav) return;
 
         const wrapper = document.createElement("div");
-
         wrapper.className = "theme-selector";
         wrapper.id = "theme-selector";
 
-        const button = document.createElement("button");
+        const select = document.createElement("select");
+        select.id = "shrekbook-theme-select";
+        select.setAttribute("aria-label", "Choose ShrekBook theme");
 
-        button.type = "button";
-        button.className = "theme-button";
-        button.textContent = "🎨 Theme";
-
-        button.setAttribute("aria-haspopup", "true");
-        button.setAttribute("aria-expanded", "false");
-
-        const menu = document.createElement("div");
-
-        menu.className = "theme-menu hidden";
-
-        const options = [
-            { theme: "default", label: "☀️ Default" },
-            { theme: "dark", label: "🌑 Dark" },
-            { theme: "legacy", label: "🕰️ Legacy" },
-
-            { theme: "ivory", label: "🤍 Ivory" },
-            { theme: "midnight", label: "🌌 Midnight" },
-            { theme: "terminal", label: "💻 Terminal" },
-            { theme: "ocean", label: "🌊 Ocean" },
-            { theme: "sunset", label: "🌅 Sunset" },
-            { theme: "monochrome", label: "⚫ Monochrome" },
-
+        const groups = [
             {
-                theme: "shrekbook-special",
-                label: "🧅 ShrekBook Special"
+                label: "Original themes",
+                themes: ["default", "dark", "legacy"]
             },
-
             {
-                theme: "random-colors",
-                label: "🌈 Random Colors"
+                label: "New themes",
+                themes: [
+                    "ivory",
+                    "midnight",
+                    "terminal",
+                    "ocean",
+                    "sunset",
+                    "monochrome",
+                    "shrekbook-special"
+                ]
             },
-
             {
-                theme: "random-selection",
-                label: "🎲 Random Selection"
+                label: "Random themes",
+                themes: ["random-colors", "random-selection"]
             }
         ];
 
-        options.forEach(option => {
+        groups.forEach(group => {
+            const optgroup = document.createElement("optgroup");
+            optgroup.label = group.label;
 
-            const optionButton = document.createElement("button");
-
-            optionButton.type = "button";
-            optionButton.className = "theme-option";
-            optionButton.dataset.theme = option.theme;
-            optionButton.textContent = option.label;
-
-            optionButton.addEventListener("click", function () {
-
-                applyTheme(option.theme);
-
-                menu.classList.add("hidden");
-
-                button.setAttribute("aria-expanded", "false");
-
+            group.themes.forEach(theme => {
+                const option = document.createElement("option");
+                option.value = theme;
+                option.textContent = LABELS[theme];
+                optgroup.appendChild(option);
             });
 
-            menu.appendChild(optionButton);
+            select.appendChild(optgroup);
         });
 
-        const shuffleButton = document.createElement("button");
-
-        shuffleButton.type = "button";
-        shuffleButton.className = "theme-option theme-shuffle";
-        shuffleButton.textContent = "🔀 Shuffle Colors";
-
-        shuffleButton.addEventListener("click", function () {
-
-            shuffleColors();
-
-            menu.classList.add("hidden");
-
-            button.setAttribute("aria-expanded", "false");
+        select.addEventListener("change", () => {
+            applyTheme(select.value);
         });
 
-        menu.appendChild(shuffleButton);
+        const shuffle = document.createElement("button");
+        shuffle.type = "button";
+        shuffle.className = "theme-shuffle";
+        shuffle.textContent = "↻";
+        shuffle.title = "Generate another random colour palette";
+        shuffle.setAttribute("aria-label", "Shuffle random colours");
+        shuffle.hidden = true;
 
-        button.addEventListener("click", function (event) {
+        shuffle.addEventListener("click", shuffleColors);
 
-            event.stopPropagation();
-
-            const isHidden = menu.classList.toggle("hidden");
-
-            button.setAttribute("aria-expanded", String(!isHidden));
-        });
-
-        menu.addEventListener("click", function (event) {
-            event.stopPropagation();
-        });
-
-        document.addEventListener("click", function () {
-
-            menu.classList.add("hidden");
-
-            button.setAttribute("aria-expanded", "false");
-        });
-
-        wrapper.appendChild(button);
-        wrapper.appendChild(menu);
+        wrapper.appendChild(select);
+        wrapper.appendChild(shuffle);
 
         nav.appendChild(wrapper);
 
-        updateThemeButtons(getSavedTheme());
+        selector = select;
+        shuffleButton = shuffle;
+
+        updateSelector(getSavedTheme());
     }
 
-    /* ========================================================
-       INITIALIZE
-       ======================================================== */
-
     function initializeThemes() {
-
         applyTheme(getSavedTheme());
-
         createThemeSelector();
     }
 
-    /* ========================================================
-       PUBLIC API
-       ======================================================== */
-
     window.ShrekBookThemes = {
-
         set: applyTheme,
-
         get: getSavedTheme,
-
         list: () => [...THEMES],
-
         shuffle: shuffleColors,
-
         random: selectRandomTheme,
+        getPalette: () => {
+            const theme = getSavedTheme();
 
-        getPalette: () => ({
-            ...getRandomPalette()
-        })
+            if (theme === "random-colors") {
+                return { ...getRandomPalette() };
+            }
+
+            if (PALETTES[theme]) {
+                return { ...PALETTES[theme] };
+            }
+
+            return null;
+        }
     };
 
-    /* ========================================================
-       START
-       ======================================================== */
-
     if (document.readyState === "loading") {
-
         document.addEventListener(
             "DOMContentLoaded",
             initializeThemes,
             { once: true }
         );
-
     } else {
-
         initializeThemes();
-
     }
-
 })();
