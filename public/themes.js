@@ -696,7 +696,7 @@
             const generator = await loadThemeAI(onProgress);
             if (onProgress) onProgress("SmolLM2 is interpreting the reference...");
             const generated = await generator(
-                "You are the visual-style interpreter for ShrekBook. Translate the user's reference into concrete interface aesthetics: mood, colours, contrast, texture, era, energy and visual motifs. Understand internet culture and fictional references from their described vibe. Do not choose or name a ShrekBook theme. Do not repeat the request. Return one concise sentence of visual traits.\\nUser reference: " + cleanPrompt + "\\nVisual interpretation:",
+                "You are the visual-style interpreter for ShrekBook. Translate the user's reference into concrete interface aesthetics: mood, colours, contrast, texture, era, energy and visual motifs. Understand internet culture and fictional references from their described vibe. Do not choose or name a ShrekBook theme. Do not repeat the request. Return one concise sentence of visual traits.\nUser reference: " + cleanPrompt + "\nVisual interpretation:",
                 {
                     max_new_tokens: 64,
                     do_sample: false,
@@ -704,6 +704,10 @@
                 }
             );
             interpretation = extractGeneratedText(generated);
+            const echoedMarker = interpretation.lastIndexOf("Visual interpretation:");
+            if (echoedMarker >= 0) {
+                interpretation = interpretation.slice(echoedMarker + "Visual interpretation:".length).trim();
+            }
             if (interpretation.length > 700) interpretation = interpretation.slice(0, 700);
             if (!interpretation) throw new Error("SmolLM2 returned an empty interpretation.");
         } catch (error) {
@@ -742,10 +746,21 @@
             // Availability fallback only: still ranks every real theme and
             // never hardcodes Default as the answer.
             const fallbackQuery = cleanPrompt + " " + interpretation;
+            const stableOrder = theme => {
+                const value = fallbackQuery + "|" + theme;
+                let hash = 2166136261;
+                for (let i = 0; i < value.length; i++) {
+                    hash ^= value.charCodeAt(i);
+                    hash = Math.imul(hash, 16777619);
+                }
+                return hash >>> 0;
+            };
             ranked = THEME_AI_CANDIDATES.map(theme => ({
                 theme,
                 score: lexicalTieBreak(fallbackQuery, theme)
-            })).sort((a, b) => b.score - a.score);
+            })).sort((a, b) =>
+                b.score - a.score || stableOrder(a.theme) - stableOrder(b.theme)
+            );
         }
 
         const recommendations = ranked.slice(0, 3).map((item, index) => ({
