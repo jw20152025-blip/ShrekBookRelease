@@ -479,68 +479,199 @@
     SHREKBOOK THEME AI — RECOMMENDATION ENGINE
     ============================================================ */
 
-    function recommendThemes(prompt) {
+        const THEME_AI_MODEL = "onnx-community/SmolLM2-135M-Instruct-ONNX-MHA";
+    const TRANSFORMERS_CDN = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
+    let themeAIPipelinePromise = null;
+    const themeAIHistory = [];
 
-        const query = String(prompt || "")
-            .toLowerCase()
+    const THEME_AI_DATA = Object.fromEntries(THEMES.map(theme => {
+        const profile = THEME_AI_PROFILES[theme] || {};
+        return [theme, {
+            description: profile.description || LABELS[theme] || theme,
+            keywords: Array.isArray(profile.keywords) ? profile.keywords : [],
+            swatches: profile.swatches || (PALETTES[theme] ? [PALETTES[theme].bg, PALETTES[theme].surface, PALETTES[theme].accent] : [])
+        }];
+    }));
+
+    function getThemeAICatalogue() {
+        return THEMES.map(theme => ({
+            id:theme,
+            label:LABELS[theme],
+            description:THEME_AI_DATA[theme].description,
+            keywords:THEME_AI_DATA[theme].keywords
+        }));
+    }
+
+    async function loadThemeAI(onProgress) {
+        if (!themeAIPipelinePromise) {
+            themeAIPipelinePromise = (async () => {
+                if (onProgress) onProgress("Loading the AI runtime...");
+                const transformers = await import(TRANSFORMERS_CDN);
+                transformers.env.useBrowserCache = true;
+                if (onProgress) onProgress("Loading SmolLM2-135M. First download is about 137 MB.");
+
+                return await transformers.pipeline(
+                    "text-generation",
+                    THEME_AI_MODEL,
+                    {
+                        dtype:"q8",
+                        progress_callback: info => {
+                            if (!onProgress || !info) return;
+                            if (info.status === "progress") {
+                                const amount = Number(info.progress);
+                                onProgress(Number.isFinite(amount)
+                                    ? "Downloading AI model: " + Math.round(amount) + "%"
+                                    : "Downloading AI model files...");
+                            } else if (info.status === "done") {
+                                onProgress("AI model file loaded.");
+                            }
+                        }
+                    }
+                );
+            })().catch(error => {
+                themeAIPipelinePromise = null;
+                throw error;
+            });
+        }
+        return themeAIPipelinePromise;
+    }
+
+    function normalizeMatchText(value) {
+        return String(value || "").toLowerCase()
             .replace(/[^a-z0-9\s-]/g, " ")
             .replace(/\s+/g, " ")
             .trim();
+    }
 
-        if (!query) return [];
+    function localThemeRanking(prompt) {
+        const query = normalizeMatchText(prompt);
 
         const ranked = THEMES.map((theme, index) => {
-
-            const profile = THEME_AI_PROFILES[theme];
-
-            if (!profile) return null;
-
-            const keywords = profile.keywords || [];
-
-            const matches = keywords.filter(keyword => {
-                return query.includes(keyword.toLowerCase());
-            });
-
+            const profile = THEME_AI_DATA[theme];
             let score = 0;
 
-            matches.forEach(keyword => {
-                score += keyword.includes(" ") ? 5 : 2;
+            profile.keywords.forEach(keyword => {
+                const term = normalizeMatchText(keyword);
+                if (term && query.includes(term)) score += term.includes(" ") ? 5 : 2;
             });
 
-            const normalizedTheme = theme.replace(/-/g, " ");
+            const normalizedId = normalizeMatchText(theme.replace(/-/g, " "));
+            if (normalizedId && query.includes(normalizedId)) score += 12;
 
-            if (query.includes(normalizedTheme)) {
-                score += 15;
-            }
+            return { theme:theme, score:score, index:index };
+        }).sort((a, b) => b.score - a.score || a.index - b.index);
 
-            return {
-                theme,
-                label: LABELS[theme] || theme,
-                description: profile.description,
-                matches,
-                score,
-                index,
-                palette: PALETTES[theme] || null
-            };
+        const matches = ranked.filter(item => item.score > 0)
+            .slice(0, 3).map(item => item.theme);
 
-        }).filter(Boolean);
+        return matches.length ? matches : ["default", "dark", "ivory"];
+    }
 
-        ranked.sort((a, b) =>
-            b.score - a.score || a.index - b.index
-        );
+    function extractThemeIds(text) {
+        const source = String(text || "").toLowerCase();
+        const found = [];
 
-        if (ranked.length && ranked[0].score === 0) {
+        THEMES.forEach(theme => {
+            const expression = new RegExp(
+                "(^|[^a-z0-9-])" + theme + "($|[^a-z0-9-])",
+                "i"
+            );
+            const match = expression.exec(source);
+            if (match) found.push({ theme:theme, index:match.index });
+        });
 
-            const fallbacks = ["default", "dark", "ivory"];
+        return found.sort((a, b) => a.index - b.index)
+            .map(item => item.theme)
+            .filter((theme, index, all) => all.indexOf(theme) === index);
+    }
 
-            return fallbacks.map(theme =>
-                ranked.find(item => item.theme === theme)
-            ).filter(Boolean);
+    async function requestThemeAI(prompt, onProgress) {
+        const cleanPrompt = String(prompt || "").trim();
+        if (!cleanPrompt || cleanPrompt.length > 300) {
+            throw new Error("Enter a description of up to 300 characters.");
         }
 
-        return ranked
-            .filter(item => item.score > 0)
-            .slice(0, 3);
+        const catalogueText = getThemeAICatalogue().map(item =>
+            item.id + ": " + item.description +
+            " Keywords: " + item.keywords.join(", ")
+        ).join("\n");
+
+        const historyText = themeAIHistory.slice(-3).map(item =>
+            "Previous request: " + item.prompt +
+            "\nPrevious recommendations: " + item.themes.join(", ")
+        ).join("\n\n");
+
+        const modelPrompt =
+            "You recommend visual themes for ShrekBook.\n" +
+            "Understand the meaning of the request, including unfamiliar references and aesthetics.\n" +
+            "Choose only IDs from this catalogue.\n" +
+            "Return three theme IDs separated by commas, best match first. No explanation.\n\n" +
+            "CATALOGUE:\n" + catalogueText + "\n\n" +
+            (historyText ? "RECENT CONVERSATION:\n" + historyText + "\n\n" : "") +
+            "CURRENT REQUEST:\n" + cleanPrompt + "\n\n" +
+            "THREE THEME IDS:";
+
+        let modelIds = [];
+        let modelError = null;
+
+        try {
+            const generator = await loadThemeAI(onProgress);
+            if (onProgress) onProgress("SmolLM2 is considering your preferences...");
+
+            const generated = await generator(modelPrompt, {
+                max_new_tokens:48,
+                do_sample:false
+            });
+
+            const fullText = generated && generated[0] &&
+                typeof generated[0].generated_text === "string"
+                    ? generated[0].generated_text
+                    : "";
+
+            const completion = fullText.startsWith(modelPrompt)
+                ? fullText.slice(modelPrompt.length)
+                : fullText;
+
+            modelIds = extractThemeIds(completion);
+        } catch (error) {
+            modelError = error;
+            console.warn("[ShrekBook Theme AI] Model unavailable:", error);
+        }
+
+        const fallbackIds = localThemeRanking(cleanPrompt);
+        const recommendations = [];
+        const seen = new Set();
+
+        modelIds.concat(fallbackIds).forEach(theme => {
+            if (recommendations.length >= 3 || !THEMES.includes(theme) || seen.has(theme)) return;
+            seen.add(theme);
+            recommendations.push({
+                theme:theme,
+                source:modelIds.includes(theme) ? "model" : "local",
+                reason:THEME_AI_DATA[theme].description
+            });
+        });
+
+        themeAIHistory.push({
+            prompt:cleanPrompt,
+            themes:recommendations.map(item => item.theme)
+        });
+        while (themeAIHistory.length > 4) themeAIHistory.shift();
+
+        const modelUsed = modelIds.length > 0 && !modelError;
+        const summary = modelUsed
+            ? "SmolLM2 generated these suggestions using your description and the 16-theme catalogue."
+            : modelError
+                ? "The model could not load, so local theme matching supplied these suggestions."
+                : "The model did not return valid theme IDs, so local matching completed the recommendations.";
+
+        if (onProgress) onProgress("Recommendations ready.");
+
+        return {
+            summary:summary,
+            modelUsed:modelUsed,
+            recommendations:recommendations
+        };
     }
 
 
@@ -581,101 +712,69 @@
     ============================================================ */
 
     function createThemeAI(wrapper) {
-
-        const aiWrapper = document.createElement("div");
-        aiWrapper.className = "theme-ai";
+        const root = document.createElement("div");
+        root.className = "theme-ai";
 
         const toggle = document.createElement("button");
         toggle.type = "button";
         toggle.className = "theme-ai-toggle";
         toggle.textContent = "✨ Theme AI";
         toggle.setAttribute("aria-expanded", "false");
-        toggle.setAttribute("aria-controls", "shrekbook-theme-ai-panel");
 
         const panel = document.createElement("section");
-        panel.id = "shrekbook-theme-ai-panel";
         panel.className = "theme-ai-panel";
         panel.hidden = true;
         panel.setAttribute("aria-label", "ShrekBook Theme AI");
 
-        // Header
-
         const header = document.createElement("div");
         header.className = "theme-ai-header";
 
-        const heading = document.createElement("strong");
-        heading.textContent = "🧅 ShrekBook Theme AI";
+        const title = document.createElement("strong");
+        title.textContent = "🧅 ShrekBook Theme AI";
 
         const close = document.createElement("button");
         close.type = "button";
         close.className = "theme-ai-close";
         close.textContent = "×";
         close.setAttribute("aria-label", "Close Theme AI");
-
-        header.append(heading, close);
-
-        // Description
+        header.append(title, close);
 
         const subtitle = document.createElement("p");
         subtitle.className = "theme-ai-subtitle";
-        subtitle.textContent =
-            "Describe the appearance you're looking for. I'll find the best matching themes.";
+        subtitle.textContent = "Describe a mood, reference, interest or visual style. I'll recommend matching themes.";
 
-        // Search form
+        const modelInfo = document.createElement("small");
+        modelInfo.className = "theme-ai-model-info";
+        modelInfo.textContent = "SmolLM2 · 135M parameters · Runs in your browser · First use downloads about 137 MB";
 
         const form = document.createElement("form");
         form.className = "theme-ai-form";
 
         const input = document.createElement("input");
         input.type = "text";
-        input.maxLength = 150;
-        input.placeholder =
-            "e.g. A dark, calm blue theme...";
-        input.setAttribute(
-            "aria-label",
-            "Describe your preferred theme"
-        );
+        input.maxLength = 300;
+        input.placeholder = "e.g. Strange retro internet aesthetics...";
+        input.setAttribute("aria-label", "Describe your preferred aesthetic");
 
         const submit = document.createElement("button");
         submit.type = "submit";
         submit.className = "theme-ai-submit";
         submit.textContent = "Find themes";
-
         form.append(input, submit);
-
-        // Results
-
-        const results = document.createElement("div");
-        results.className = "theme-ai-results";
-        results.setAttribute("aria-live", "polite");
-
-        // Panel status
 
         const status = document.createElement("p");
         status.className = "theme-ai-status";
+        status.setAttribute("aria-live", "polite");
 
-        panel.append(
-            header,
-            subtitle,
-            form,
-            results,
-            status
-        );
+        const results = document.createElement("div");
+        results.className = "theme-ai-results";
 
-        // Toggle panel
+        panel.append(header, subtitle, modelInfo, form, status, results);
 
         toggle.addEventListener("click", () => {
-
             panel.hidden = !panel.hidden;
-
-            toggle.setAttribute(
-                "aria-expanded",
-                String(!panel.hidden)
-            );
-
-            if (!panel.hidden) {
-                input.focus();
-            }
+            toggle.setAttribute("aria-expanded", String(!panel.hidden));
+            if (!panel.hidden) input.focus();
         });
 
         close.addEventListener("click", () => {
@@ -683,119 +782,85 @@
             toggle.setAttribute("aria-expanded", "false");
         });
 
-        // Generate recommendations
-
-        form.addEventListener("submit", event => {
-
+        form.addEventListener("submit", async event => {
             event.preventDefault();
-
-            const recommendations = recommendThemes(input.value);
-
-            results.replaceChildren();
-            status.textContent = "";
-
-            if (!recommendations.length) {
-
-                status.textContent =
-                    "Describe a mood, colour, era or visual style first.";
-
+            if (!input.value.trim()) {
+                status.textContent = "Describe what you like first.";
                 return;
             }
 
-            const title = document.createElement("p");
-            title.className = "theme-ai-result-heading";
-            title.textContent = "Your best matches:";
+            submit.disabled = true;
+            submit.textContent = "Thinking...";
+            results.replaceChildren();
 
-            results.appendChild(title);
+            try {
+                const data = await requestThemeAI(input.value, message => {
+                    status.textContent = message;
+                });
 
-            recommendations.forEach((recommendation, index) => {
+                status.textContent = data.summary;
 
-                const card = document.createElement("article");
-                card.className = "theme-ai-card";
+                data.recommendations.forEach((recommendation, index) => {
+                    const theme = recommendation.theme;
+                    const card = document.createElement("article");
+                    card.className = "theme-ai-card";
 
-                // Theme name
+                    const name = document.createElement("strong");
+                    name.className = "theme-ai-name";
+                    name.textContent = (index + 1) + ". " + LABELS[theme];
 
-                const name = document.createElement("strong");
-                name.className = "theme-ai-name";
+                    const description = document.createElement("p");
+                    description.className = "theme-ai-description";
+                    description.textContent = THEME_AI_DATA[theme].description;
 
-                name.textContent =
-                    `${index + 1}. ${recommendation.label}`;
+                    const source = document.createElement("small");
+                    source.className = "theme-ai-source";
+                    source.textContent = recommendation.source === "model"
+                        ? "SmolLM2 recommendation"
+                        : "Local matching fallback";
 
-                // Description
-
-                const description = document.createElement("p");
-                description.className = "theme-ai-description";
-                description.textContent =
-                    recommendation.description;
-
-                // Matching characteristics
-
-                if (recommendation.matches.length) {
-
-                    const matched = document.createElement("small");
-                    matched.className = "theme-ai-matches";
-
-                    matched.textContent =
-                        "Matched: " +
-                        recommendation.matches.slice(0, 4).join(", ");
-
-                    card.append(name, description, matched);
-
-                } else {
-
-                    card.append(name, description);
-                }
-
-                // Colour preview
-
-                const colors = getThemeAIColors(recommendation.theme);
-
-                if (colors.length) {
+                    card.append(name, description, source);
 
                     const swatches = document.createElement("div");
                     swatches.className = "theme-ai-swatches";
 
-                    colors.forEach(color => {
-
+                    getThemeAIColors(theme).forEach(color => {
                         const swatch = document.createElement("span");
                         swatch.className = "theme-ai-swatch";
                         swatch.style.backgroundColor = color;
-
+                        swatch.setAttribute("aria-label", color);
                         swatches.appendChild(swatch);
                     });
 
-                    card.appendChild(swatches);
-                }
+                    if (swatches.childElementCount) card.appendChild(swatches);
 
-                // Apply button
+                    const apply = document.createElement("button");
+                    apply.type = "button";
+                    apply.className = "theme-ai-apply";
+                    apply.textContent = theme === "random-selection" ? "Surprise me" : "Apply theme";
 
-                const apply = document.createElement("button");
-                apply.type = "button";
-                apply.className = "theme-ai-apply";
-                apply.textContent =
-                    recommendation.theme === "random-selection"
-                        ? "Surprise me"
-                        : "Apply theme";
+                    apply.addEventListener("click", () => {
+                        applyTheme(theme);
+                        status.textContent = LABELS[getSavedTheme()] + " applied.";
+                    });
 
-                apply.addEventListener("click", () => {
-
-                    applyTheme(recommendation.theme);
-
-                    const actualTheme = getSavedTheme();
-
-                    status.textContent =
-                        actualTheme === recommendation.theme
-                            ? `${LABELS[actualTheme]} applied!`
-                            : `Random selection applied: ${LABELS[actualTheme]}`;
+                    card.appendChild(apply);
+                    results.appendChild(card);
                 });
 
-                card.appendChild(apply);
-                results.appendChild(card);
-            });
+                if (!data.recommendations.length) {
+                    status.textContent = "No usable recommendations. Try another description.";
+                }
+            } catch (error) {
+                status.textContent = error.message || "Theme AI could not complete the request.";
+            } finally {
+                submit.disabled = false;
+                submit.textContent = "Find themes";
+            }
         });
 
-        aiWrapper.append(toggle, panel);
-        wrapper.appendChild(aiWrapper);
+        root.append(toggle, panel);
+        wrapper.appendChild(root);
     }
     function createThemeSelector() {
         if (document.getElementById("theme-selector")) return;
@@ -1064,32 +1129,21 @@
         shuffle: shuffleColors,
         random: selectRandomTheme,
         ai: {
-
             recommend: requestThemeAI,
-
             apply: async prompt => {
-
                 const result = await requestThemeAI(prompt);
-
                 const best = result.recommendations[0];
-
-                return best
-                    ? applyTheme(best.theme)
-                    : null;
+                return best ? applyTheme(best.theme) : null;
             },
-
-            data: () => THEMES.map(theme => ({
-                theme,
-                label: LABELS[theme],
-                description: THEME_AI_PROFILES[theme].description,
-                keywords: [
-                    ...(THEME_AI_PROFILES[theme].keywords || [])
-                ],
-                palette: PALETTES[theme]
-                    ? { ...PALETTES[theme] }
-                    : null
-            }))
-        },   
+            data: getThemeAICatalogue,
+            modelInfo: {
+                name: "SmolLM2-135M-Instruct",
+                parameters: 135000000,
+                localInference: true,
+                paidAPI: false,
+                firstDownloadApproxMB: 137
+            }
+        },
         getPalette: () => {
             const theme = getSavedTheme();
 

@@ -1520,3 +1520,7 @@ html[data-theme="1960s"] body {
         right: 0;
     }
 }
+
+/* Theme AI model information and recommendation source */
+.theme-ai-model-info,.theme-ai-source{display:block;margin:0 0 10px;color:#9db8a2!important;font-size:11px;line-height:1.45}
+.theme-ai-submit:disabled{opacity:.65;cursor:wait}
