@@ -12520,7 +12520,7 @@ app.post("/api/houses/:id/invite", async (req, res) => {
         if (!target) return res.status(404).json({ error: "User not found." });
         if (await getHouseMembership(houseId, inviteeId)) return res.status(409).json({ error: "That user is already a member." });
         const { data: existing, error: existingError } = await supabase.from("house_invitations")
-            .select("id").eq("house_id", houseId).eq("invitee_id", inviteeId).eq("status", "pending").maybeSingle();
+            .select("id").eq("house_id", houseId).eq("invitee_id", inviteeId).eq("status", "pending").order("created_at", { ascending: false }).limit(1).maybeSingle();
         if (existingError) throw existingError;
         if (existing) {
             const { error } = await supabase.from("house_invitations")
