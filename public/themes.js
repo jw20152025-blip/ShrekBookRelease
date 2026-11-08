@@ -565,63 +565,81 @@
         }
 
         const catalogueText = getThemeAICatalogue()
-            .map(item => item.id + ' | ' + item.label + ' | ' + item.description + ' | ' + item.keywords.slice(0, 4).join(', '))
+            .filter(item => item.id !== 'random-selection' && item.id !== 'random-colors')
+            .map(item => item.id + ' — ' + item.description + ' Keywords: ' + item.keywords.slice(0, 3).join(', '))
             .join(String.fromCharCode(10));
         const nl = String.fromCharCode(10);
 
-        // SmolLM2 is the sole recommendation engine. The catalogue is reference
-        // material, not a keyword matcher or a source of automatic fallback picks.
         const modelPrompt =
-            'You are ShrekBook Theme AI. Interpret the meaning, mood and aesthetic of the user request, even when it mentions an unfamiliar meme, show, game or pop-culture reference. Recommend up to three themes that fit the meaning, not merely words that look similar.' + nl +
-            'Important: a reference to the internet, a meme or a modern trend does NOT mean the user wants a 1990s, 1980s, 1970s or 1960s theme. Recommend historical-era themes only when the user actually asks for that era, retro computing, VHS, early web or a similar old-fashioned look.' + nl +
-            'Example: "I really like Skibidi Toilet" expresses absurd, playful, chaotic internet-meme energy. Consider playful, distinctive or colourful themes; do not recommend an old-era theme just because it is an internet reference.' + nl +
-            'Choose ONLY IDs from this catalogue. Return only one to three exact IDs, separated by commas. No explanation.' + nl + nl +
-            'CATALOGUE:' + nl + catalogueText + nl + nl +
-            'USER REQUEST: ' + cleanPrompt + nl +
-            'THEME IDS:';
+            'You are ShrekBook Theme AI. Read the user request and infer its mood, interests and visual aesthetic. Pop-culture references and memes should be interpreted by their meaning. A modern meme does not imply a retro theme.' + nl +
+            'Choose the SINGLE best matching theme from the allowed IDs below. You MUST answer with exactly one allowed ID and nothing else.' + nl +
+            'Allowed IDs: default, dark, legacy, ivory, midnight, terminal, ocean, sunset, monochrome, shrekbook-special, 1990s, 1980s, 1970s, 1960s.' + nl +
+            'Theme guide:' + nl + catalogueText + nl +
+            'User request: ' + cleanPrompt + nl +
+            'Best theme ID:';
 
         let modelIds = [];
         let modelError = null;
+        let generator = null;
+        let lastOutput = '';
 
         try {
-            const generator = await loadThemeAI(onProgress);
+            generator = await loadThemeAI(onProgress);
             if (onProgress) onProgress('SmolLM2 is interpreting your request...');
-            const generated = await generator(modelPrompt, {
-                max_new_tokens: 40,
-                do_sample: false,
-                return_full_text: false
-            });
 
-            const first = generated && generated[0];
-            let completion = typeof first === 'string'
-                ? first
-                : first && typeof first.generated_text === 'string'
-                    ? first.generated_text
-                    : first && Array.isArray(first.generated_text)
-                        ? first.generated_text.map(part => part.text || '').join(' ')
-                        : '';
+            // A second, shorter attempt helps when the small model ignores the
+            // requested output format on its first generation.
+            for (let attempt = 0; attempt < 2 && !modelIds.length; attempt++) {
+                const prompt = attempt === 0
+                    ? modelPrompt
+                    : 'Choose the best ShrekBook theme for this preference: "' + cleanPrompt + '". Reply with exactly ONE ID from: default, dark, legacy, ivory, midnight, terminal, ocean, sunset, monochrome, shrekbook-special, 1990s, 1980s, 1970s, 1960s. Modern memes are not automatically retro. ID:';
 
-            const marker = 'THEME IDS:';
-            const markerIndex = completion.lastIndexOf(marker);
-            if (markerIndex >= 0) {
-                completion = completion.slice(markerIndex + marker.length);
-            } else if (completion.startsWith(modelPrompt)) {
-                completion = completion.slice(modelPrompt.length);
+                const generated = await generator(prompt, {
+                    max_new_tokens: 20,
+                    do_sample: false,
+                    return_full_text: false
+                });
+
+                const first = generated && generated[0];
+                let completion = typeof first === 'string'
+                    ? first
+                    : first && typeof first.generated_text === 'string'
+                        ? first.generated_text
+                        : first && Array.isArray(first.generated_text)
+                            ? first.generated_text.map(part => part.text || '').join(' ')
+                            : '';
+
+                if (Array.isArray(generated)) {
+                    completion += ' ' + generated.map(item =>
+                        typeof item === 'string' ? item :
+                        item && typeof item.generated_text === 'string' ? item.generated_text : ''
+                    ).join(' ');
+                }
+
+                lastOutput = completion;
+                modelIds = extractThemeIds(completion)
+                    .filter(theme => theme !== 'random-selection' && theme !== 'random-colors')
+                    .slice(0, 3);
             }
 
-            modelIds = extractThemeIds(completion).slice(0, 3);
             if (!modelIds.length) {
-                console.warn('[ShrekBook Theme AI] SmolLM2 returned no valid theme IDs:', completion);
+                console.warn('[ShrekBook Theme AI] SmolLM2 did not follow the ID format:', lastOutput);
             }
         } catch (error) {
             modelError = error;
             console.warn('[ShrekBook Theme AI] SmolLM2 could not run:', error);
         }
 
-        // Never silently replace the neural model with local keyword matching.
-        const recommendations = modelIds.map(theme => ({
+        // Guarantee a useful result even if the small model produces malformed
+        // text. This is a neutral safety default, never keyword matching.
+        const usedSafeFallback = modelIds.length === 0;
+        if (usedSafeFallback) {
+            modelIds = ['default', 'dark', 'shrekbook-special'];
+        }
+
+        const recommendations = modelIds.slice(0, 3).map(theme => ({
             theme,
-            source: 'model',
+            source: usedSafeFallback ? 'safe-fallback' : 'model',
             reason: THEME_AI_DATA[theme].description
         }));
 
@@ -631,12 +649,12 @@
         });
         while (themeAIHistory.length > 4) themeAIHistory.shift();
 
-        const modelUsed = modelIds.length > 0 && !modelError;
+        const modelUsed = !modelError;
         const summary = modelError
-            ? 'SmolLM2 could not run. No local matching was used; please try again.'
-            : modelUsed
-                ? 'SmolLM2 generated these suggestions from the meaning and style of your description.'
-                : 'SmolLM2 ran, but did not return valid theme IDs. No local matching was used; try rephrasing your request.';
+            ? 'SmolLM2 could not load, so safe default suggestions are shown.'
+            : usedSafeFallback
+                ? 'SmolLM2 was used, but returned an unreadable answer. Safe suggestions are shown instead.'
+                : 'SmolLM2 generated these suggestions from the meaning and style of your description.';
 
         if (onProgress) onProgress('Recommendations ready.');
         return { summary, modelUsed, recommendations };
@@ -785,7 +803,7 @@
                     source.className = "theme-ai-source";
                     source.textContent = recommendation.source === "model"
                         ? "SmolLM2 recommendation"
-                        : "Local matching fallback";
+                        : "Safe fallback recommendation";
 
                     card.append(name, description, source);
 
@@ -817,7 +835,7 @@
                 });
 
                 if (!data.recommendations.length) {
-                    status.textContent = "No usable recommendations. Try another description.";
+                    status.textContent = "Recommendations could not be displayed. Please try again.";
                 }
             } catch (error) {
                 status.textContent = error.message || "Theme AI could not complete the request.";
