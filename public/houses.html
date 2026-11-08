@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShrekBook Houses 🏠</title>
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/themes.css">
+<style>
+.house-page{max-width:1120px;margin:28px auto;padding:0 18px 50px}
+.house-hero{padding:28px;border-radius:18px;background:linear-gradient(135deg,#244d27,#6c9d43);color:#fff;margin-bottom:22px}
+.house-hero h1{margin:0 0 8px;font-size:30px}.house-hero p{margin:0;opacity:.9}
+.house-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.house-panel,.house-card,.house-detail{background:var(--sb-surface,#fff);color:var(--sb-text,#222);border:1px solid var(--sb-border,#ddd);border-radius:15px;padding:18px;margin-bottom:18px;box-shadow:0 2px 10px #0000000b}
+.house-panel h2,.house-detail h2{margin-top:0}
+.house-card{margin:0}.house-card h3{margin:0 0 6px}.house-muted{color:var(--sb-muted,#777);font-size:13px}
+.house-tag{display:inline-block;padding:4px 9px;border-radius:99px;background:#398b5220;color:var(--sb-accent,#398b52);font-size:12px;font-weight:700;margin:4px 4px 4px 0}
+.house-form{display:grid;gap:10px}.house-form input,.house-form textarea,.house-form select{width:100%;padding:11px;border:1px solid var(--sb-border,#ccc);border-radius:9px;background:var(--sb-bg,#fff);color:var(--sb-text,#222);font:inherit}.house-form textarea{min-height:80px}
+.house-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.house-actions button,.house-button{border:0;border-radius:9px;padding:9px 13px;background:var(--sb-accent,#398b52);color:var(--sb-accent-text,#fff);font-weight:700;cursor:pointer}.house-button.secondary,.house-actions .secondary{background:#777;color:#fff}.house-button.danger,.house-actions .danger{background:#a83232;color:#fff}
+.house-status{padding:10px 12px;border-radius:9px;background:#8882;margin:12px 0;min-height:20px}.house-status:empty{display:none}
+.house-room{border:1px solid var(--sb-border,#ddd);border-radius:12px;padding:13px;margin:9px 0;background:var(--sb-bg,#fff)}
+.house-member{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--sb-border,#ddd)}.house-member img{width:38px;height:38px;border-radius:50%;object-fit:cover}.house-member-info{flex:1;min-width:0}
+.house-invite{display:flex;gap:8px;flex-wrap:wrap}.house-invite input{flex:1;min-width:180px}
+.house-empty{padding:20px;text-align:center;color:var(--sb-muted,#777)}
+.house-two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:650px){.house-two{grid-template-columns:1fr}.house-hero{padding:20px}.house-hero h1{font-size:24px}}
+</style>
+</head>
+<body>
+<header class="navbar"><div class="navbar-inner">
+<a href="/" class="logo">🧌 ShrekBook</a>
+<nav><a href="/">Home</a><a href="/profile.html">Profile</a><a href="/shrekchat.html">💬 ShrekChat</a><a href="/houses.html">🏠 Houses</a><a href="/inventory.html">Inventory</a></nav>
+</div></header>
+<main class="house-page">
+<section class="house-hero"><h1>🏠 ShrekBook Houses</h1><p>Own a place, build a community, invite friends and make it yours.</p></section>
+<div id="house-status" class="house-status" role="status" aria-live="polite"></div>
+<section id="house-auth" class="house-panel" hidden><h2>Sign in required</h2><p>Log in to ShrekBook before managing houses.</p><a class="house-button" href="/">Go to ShrekBook login</a></section>
+<section id="house-main" hidden>
+<div class="house-two">
+<section class="house-panel"><h2>🏗️ Build a House</h2><form id="create-house-form" class="house-form">
+<label>House name<input name="name" maxlength="50" required placeholder="e.g. Onion Manor"></label>
+<label>Description<textarea name="description" maxlength="300" placeholder="What makes your house special?"></textarea></label>
+<label>House type<select name="houseType" id="house-type" required><option value="">Loading house types…</option></select></label>
+<div id="house-type-info" class="house-muted"></div>
+<button class="house-button" type="submit">Purchase & create</button>
+</form></section>
+<section class="house-panel"><h2>📨 Invitations <span id="invite-count" class="house-tag">0</span></h2><div id="house-invitations" class="house-empty">Loading invitations…</div></section>
+</div>
+<section class="house-panel"><h2>🏘️ House Directory</h2><p class="house-muted">Browse houses. Interior access is limited to their members.</p><div id="house-list" class="house-grid"><div class="house-empty">Loading houses…</div></div></section>
+<section id="house-detail" class="house-detail" hidden></section>
+</section>
+</main>
+<script src="/houses.js" defer></script>
+</body>
+</html>
