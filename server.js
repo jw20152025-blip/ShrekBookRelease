@@ -12512,30 +12512,16 @@ app.post("/api/houses/:id/invite", async (req, res) => {
     const inviteeId = String(req.body?.userId || "").trim();
     if (!houseId || !inviteeId) return res.status(400).json({ error: "House and user are required." });
     try {
-        const membership = await getHouseMembership(houseId, userId);
-        if (!membership || !["owner", "admin"].includes(membership.role)) return res.status(403).json({ error: "Only House managers can invite users." });
-        if (inviteeId === userId) return res.status(400).json({ error: "You cannot invite yourself." });
-        const { data: target, error: targetError } = await supabase.from("profiles").select("id").eq("id", inviteeId).maybeSingle();
-        if (targetError) throw targetError;
-        if (!target) return res.status(404).json({ error: "User not found." });
-        if (await getHouseMembership(houseId, inviteeId)) return res.status(409).json({ error: "That user is already a member." });
-        const { data: existing, error: existingError } = await supabase.from("house_invitations")
-            .select("id").eq("house_id", houseId).eq("invitee_id", inviteeId).eq("status", "pending").order("created_at", { ascending: false }).limit(1).maybeSingle();
-        if (existingError) throw existingError;
-        if (existing) {
-            const { error } = await supabase.from("house_invitations")
-                .update({ inviter_id: userId, created_at: new Date().toISOString() }).eq("id", existing.id);
-            if (error) throw error;
-        } else {
-            const { error } = await supabase.from("house_invitations").insert({
-                house_id: houseId, inviter_id: userId, invitee_id: inviteeId, status: "pending"
-            });
-            if (error) throw error;
-        }
-        res.json({ success: true });
+        const { data, error } = await supabase.rpc("send_house_invitation", {
+            p_house_id: houseId,
+            p_inviter_id: userId,
+            p_invitee_id: inviteeId
+        });
+        if (error) return res.status(400).json({ error: error.message || "Failed to send invitation." });
+        return res.json({ success: true, invitation: data });
     } catch (error) {
         console.error("HOUSE INVITE ERROR:", error);
-        res.status(500).json({ error: "Failed to send invitation." });
+        return res.status(500).json({ error: "Failed to send invitation." });
     }
 });
 
@@ -12543,27 +12529,21 @@ app.post("/api/houses/invitations/:id/:action", async (req, res) => {
     const userId = requireHouseLogin(req, res);
     if (!userId) return;
     const invitationId = parseHouseId(req.params.id);
-    const status = req.params.action === "accept" ? "accepted" : req.params.action === "decline" ? "declined" : null;
-    if (!invitationId || !status) return res.status(400).json({ error: "Invalid invitation action." });
+    const action = req.params.action;
+    if (!invitationId || !["accept", "decline"].includes(action)) {
+        return res.status(400).json({ error: "Invalid invitation action." });
+    }
     try {
-        const { data: invitation, error } = await supabase.from("house_invitations")
-            .select("id, house_id, invitee_id, status").eq("id", invitationId)
-            .eq("invitee_id", userId).eq("status", "pending").maybeSingle();
-        if (error) throw error;
-        if (!invitation) return res.status(404).json({ error: "Invitation not found." });
-        if (status === "accepted") {
-            const { error: memberError } = await supabase.from("house_members").upsert({
-                house_id: invitation.house_id, user_id: userId, role: "member"
-            }, { onConflict: "house_id,user_id" });
-            if (memberError) throw memberError;
-        }
-        const { error: updateError } = await supabase.from("house_invitations")
-            .update({ status, responded_at: new Date().toISOString() }).eq("id", invitation.id).eq("invitee_id", userId);
-        if (updateError) throw updateError;
-        res.json({ success: true, status });
+        const { data, error } = await supabase.rpc("respond_house_invitation", {
+            p_invitation_id: invitationId,
+            p_invitee_id: userId,
+            p_action: action
+        });
+        if (error) return res.status(400).json({ error: error.message || "Invitation action failed." });
+        return res.json(data || { success: true });
     } catch (error) {
         console.error("HOUSE INVITATION ACTION ERROR:", error);
-        res.status(500).json({ error: "Invitation action failed." });
+        return res.status(500).json({ error: "Invitation action failed." });
     }
 });
 
@@ -12678,8 +12658,12 @@ app.put("/api/houses/:id/rooms/:roomId", async (req, res) => {
             updates.description = req.body.description.trim();
         }
         if (manager && typeof req.body?.isPrivate === "boolean") {
+            const requestedOwnerId = String(req.body?.ownerId || userId);
+            if (req.body.isPrivate && !(await getHouseMembership(houseId, requestedOwnerId))) {
+                return res.status(400).json({ error: "Private rooms must belong to a House member." });
+            }
             updates.is_private = req.body.isPrivate;
-            updates.owner_id = req.body.isPrivate ? (req.body.ownerId || userId) : null;
+            updates.owner_id = req.body.isPrivate ? requestedOwnerId : null;
         }
         if (!Object.keys(updates).length) return res.status(400).json({ error: "No room changes supplied." });
         updates.updated_at = new Date().toISOString();
@@ -13559,10 +13543,14 @@ app.put("/api/houses/:id", async (req, res) => {
             String(req.body?.description || "")
                 .trim();
 
-        if (!name) {
+        if (!name || name.length > 50) {
             return res.status(400).json({
-                error:
-                    "House name is required."
+                error: "House name must be between 1 and 50 characters."
+            });
+        }
+        if (description.length > 300) {
+            return res.status(400).json({
+                error: "House description must be 300 characters or fewer."
             });
         }
 
