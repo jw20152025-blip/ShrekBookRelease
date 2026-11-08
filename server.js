@@ -12653,6 +12653,13 @@ app.get("/api/houses/:id", async (req, res) => {
             });
         }
 
+        const membership = await getHouseMembership(houseId, userId);
+        if (house.owner_id !== userId && !membership) {
+            return res.status(403).json({
+                error: "You must be a member of this House to enter."
+            });
+        }
+
         const { data: rooms, error: roomsError } = await supabase
             .from("house_rooms")
             .select(
