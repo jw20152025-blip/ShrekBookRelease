@@ -543,30 +543,6 @@
             .trim();
     }
 
-    function localThemeRanking(prompt) {
-        const query = normalizeMatchText(prompt);
-
-        const ranked = THEMES.map((theme, index) => {
-            const profile = THEME_AI_DATA[theme];
-            let score = 0;
-
-            profile.keywords.forEach(keyword => {
-                const term = normalizeMatchText(keyword);
-                if (term && query.includes(term)) score += term.includes(" ") ? 5 : 2;
-            });
-
-            const normalizedId = normalizeMatchText(theme.replace(/-/g, " "));
-            if (normalizedId && query.includes(normalizedId)) score += 12;
-
-            return { theme:theme, score:score, index:index };
-        }).sort((a, b) => b.score - a.score || a.index - b.index);
-
-        const matches = ranked.filter(item => item.score > 0)
-            .slice(0, 3).map(item => item.theme);
-
-        return matches.length ? matches : ["default", "dark", "ivory"];
-    }
-
     function extractThemeIds(text) {
     const source = String(text || '').toLowerCase();
     const found = [];
@@ -583,41 +559,88 @@
 }
 
     async function requestThemeAI(prompt, onProgress) {
-    const cleanPrompt = String(prompt || '').trim();
-    if (!cleanPrompt || cleanPrompt.length > 300) throw new Error('Enter a description of up to 300 characters.');
-    const catalogueText = getThemeAICatalogue().map(item => item.id + ' | ' + item.label + ' | ' + item.keywords.slice(0, 5).join(', ')).join(String.fromCharCode(10));
-    const nl = String.fromCharCode(10);
-    const modelPrompt = 'You recommend ShrekBook visual themes. Understand the user request, including unfamiliar pop-culture references. Choose up to three best matches from the catalogue. Output ONLY exact theme IDs separated by commas. Do not repeat the catalogue.' + nl + nl + 'CATALOGUE:' + nl + catalogueText + nl + nl + 'USER REQUEST: ' + cleanPrompt + nl + 'THEME IDS:';
-    let modelIds = [];
-    let modelError = null;
-    try {
-        const generator = await loadThemeAI(onProgress);
-        if (onProgress) onProgress('SmolLM2 is considering your preferences...');
-        const generated = await generator(modelPrompt, { max_new_tokens: 32, do_sample: false, return_full_text: false });
-        const first = generated && generated[0];
-        let completion = typeof first === 'string' ? first : first && typeof first.generated_text === 'string' ? first.generated_text : first && Array.isArray(first.generated_text) ? first.generated_text.map(part => part.text || '').join(' ') : '';
-        const marker = 'THEME IDS:';
-        const markerIndex = completion.lastIndexOf(marker);
-        if (markerIndex >= 0) completion = completion.slice(markerIndex + marker.length);
-        else if (completion.startsWith(modelPrompt)) completion = completion.slice(modelPrompt.length);
-        modelIds = extractThemeIds(completion);
-        if (!modelIds.length) console.warn('[ShrekBook Theme AI] Unrecognized model output:', completion);
-    } catch (error) { modelError = error; console.warn('[ShrekBook Theme AI] Model unavailable:', error); }
-    const fallbackIds = localThemeRanking(cleanPrompt);
-    const recommendations = [];
-    const seen = new Set();
-    modelIds.concat(fallbackIds).forEach(theme => {
-        if (recommendations.length >= 3 || !THEMES.includes(theme) || seen.has(theme)) return;
-        seen.add(theme);
-        recommendations.push({ theme, source: modelIds.includes(theme) ? 'model' : 'local', reason: THEME_AI_DATA[theme].description });
-    });
-    themeAIHistory.push({ prompt: cleanPrompt, themes: recommendations.map(item => item.theme) });
-    while (themeAIHistory.length > 4) themeAIHistory.shift();
-    const modelUsed = modelIds.length > 0 && !modelError;
-    const summary = modelUsed ? 'SmolLM2 generated these suggestions using your description and the theme catalogue.' : modelError ? 'The model could not load, so local theme matching supplied these suggestions.' : 'The model response could not be matched to a theme ID, so local matching completed the recommendations.';
-    if (onProgress) onProgress('Recommendations ready.');
-    return { summary, modelUsed, recommendations };
-}
+        const cleanPrompt = String(prompt || '').trim();
+        if (!cleanPrompt || cleanPrompt.length > 300) {
+            throw new Error('Enter a description of up to 300 characters.');
+        }
+
+        const catalogueText = getThemeAICatalogue()
+            .map(item => item.id + ' | ' + item.label + ' | ' + item.description + ' | ' + item.keywords.slice(0, 4).join(', '))
+            .join(String.fromCharCode(10));
+        const nl = String.fromCharCode(10);
+
+        // SmolLM2 is the sole recommendation engine. The catalogue is reference
+        // material, not a keyword matcher or a source of automatic fallback picks.
+        const modelPrompt =
+            'You are ShrekBook Theme AI. Interpret the meaning, mood and aesthetic of the user request, even when it mentions an unfamiliar meme, show, game or pop-culture reference. Recommend up to three themes that fit the meaning, not merely words that look similar.' + nl +
+            'Important: a reference to the internet, a meme or a modern trend does NOT mean the user wants a 1990s, 1980s, 1970s or 1960s theme. Recommend historical-era themes only when the user actually asks for that era, retro computing, VHS, early web or a similar old-fashioned look.' + nl +
+            'Example: "I really like Skibidi Toilet" expresses absurd, playful, chaotic internet-meme energy. Consider playful, distinctive or colourful themes; do not recommend an old-era theme just because it is an internet reference.' + nl +
+            'Choose ONLY IDs from this catalogue. Return only one to three exact IDs, separated by commas. No explanation.' + nl + nl +
+            'CATALOGUE:' + nl + catalogueText + nl + nl +
+            'USER REQUEST: ' + cleanPrompt + nl +
+            'THEME IDS:';
+
+        let modelIds = [];
+        let modelError = null;
+
+        try {
+            const generator = await loadThemeAI(onProgress);
+            if (onProgress) onProgress('SmolLM2 is interpreting your request...');
+            const generated = await generator(modelPrompt, {
+                max_new_tokens: 40,
+                do_sample: false,
+                return_full_text: false
+            });
+
+            const first = generated && generated[0];
+            let completion = typeof first === 'string'
+                ? first
+                : first && typeof first.generated_text === 'string'
+                    ? first.generated_text
+                    : first && Array.isArray(first.generated_text)
+                        ? first.generated_text.map(part => part.text || '').join(' ')
+                        : '';
+
+            const marker = 'THEME IDS:';
+            const markerIndex = completion.lastIndexOf(marker);
+            if (markerIndex >= 0) {
+                completion = completion.slice(markerIndex + marker.length);
+            } else if (completion.startsWith(modelPrompt)) {
+                completion = completion.slice(modelPrompt.length);
+            }
+
+            modelIds = extractThemeIds(completion).slice(0, 3);
+            if (!modelIds.length) {
+                console.warn('[ShrekBook Theme AI] SmolLM2 returned no valid theme IDs:', completion);
+            }
+        } catch (error) {
+            modelError = error;
+            console.warn('[ShrekBook Theme AI] SmolLM2 could not run:', error);
+        }
+
+        // Never silently replace the neural model with local keyword matching.
+        const recommendations = modelIds.map(theme => ({
+            theme,
+            source: 'model',
+            reason: THEME_AI_DATA[theme].description
+        }));
+
+        themeAIHistory.push({
+            prompt: cleanPrompt,
+            themes: recommendations.map(item => item.theme)
+        });
+        while (themeAIHistory.length > 4) themeAIHistory.shift();
+
+        const modelUsed = modelIds.length > 0 && !modelError;
+        const summary = modelError
+            ? 'SmolLM2 could not run. No local matching was used; please try again.'
+            : modelUsed
+                ? 'SmolLM2 generated these suggestions from the meaning and style of your description.'
+                : 'SmolLM2 ran, but did not return valid theme IDs. No local matching was used; try rephrasing your request.';
+
+        if (onProgress) onProgress('Recommendations ready.');
+        return { summary, modelUsed, recommendations };
+    }
 
 
     /* ============================================================
