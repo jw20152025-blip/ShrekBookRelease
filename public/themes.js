@@ -124,7 +124,178 @@
         "random-colors": "🌈 Random Colors",
         "random-selection": "🎲 Random Selection"
     };
+    /* ============================================================
+    SHREKBOOK THEME AI — KNOWLEDGE DATABASE
+    Descriptions, moods, colours and searchable characteristics.
+    ============================================================ */
 
+    const THEME_AI_PROFILES = {
+
+        "default": {
+            description: "Clean, bright and familiar. The standard ShrekBook experience.",
+            keywords: [
+                "clean", "simple", "bright", "light", "normal",
+                "readable", "balanced", "everyday", "plain",
+                "professional", "familiar", "minimal"
+            ],
+            swatches: ["#ffffff", "#f5f5f5", "#398b52"]
+        },
+
+        "dark": {
+            description: "Comfortable dark grey interface with restrained monochrome styling.",
+            keywords: [
+                "dark", "night", "comfortable", "charcoal",
+                "grey", "gray", "dim", "low light",
+                "dark mode", "subtle", "easy on the eyes"
+            ],
+            swatches: ["#17191c", "#22252a", "#343941"]
+        },
+
+        "legacy": {
+            description: "Classic early World Wide Web styling, inspired by the 1990–1995 internet.",
+            keywords: [
+                "legacy", "classic web", "old website",
+                "early internet", "traditional web",
+                "old browser", "nostalgic", "90s website",
+                "windows 95", "old school web"
+            ],
+            swatches: ["#c0c0c0", "#000080", "#e0e0e0"]
+        },
+
+        "ivory": {
+            description: "Warm cream colours, soft surfaces and an elegant paper-like appearance.",
+            keywords: [
+                "cream", "ivory", "warm", "cozy", "cosy",
+                "paper", "beige", "soft", "elegant",
+                "comfortable", "gentle", "warm white"
+            ]
+        },
+
+        "midnight": {
+            description: "Deep navy backgrounds with cool blue highlights and a nighttime atmosphere.",
+            keywords: [
+                "midnight", "navy", "blue", "dark blue",
+                "space", "night sky", "deep", "mysterious",
+                "cool", "calm", "cosmic"
+            ]
+        },
+
+        "terminal": {
+            description: "Green-on-black computer terminal styling for a technical, coding-inspired look.",
+            keywords: [
+                "terminal", "hacker", "coding", "programming",
+                "computer", "developer", "matrix", "command line",
+                "green", "phosphor", "technical", "cyber",
+                "retro computer", "console"
+            ]
+        },
+
+        "ocean": {
+            description: "Blue and turquoise colours inspired by deep water and the ocean.",
+            keywords: [
+                "ocean", "sea", "water", "blue", "teal",
+                "turquoise", "aquatic", "marine", "calm",
+                "refreshing", "cool", "underwater"
+            ]
+        },
+
+        "sunset": {
+            description: "Warm orange and coral highlights with a sunset-inspired palette.",
+            keywords: [
+                "sunset", "orange", "coral", "peach",
+                "pink", "warm", "evening", "golden",
+                "colourful", "colorful", "vibrant"
+            ]
+        },
+
+        "monochrome": {
+            description: "A minimalist black-and-white experience without colourful distractions.",
+            keywords: [
+                "monochrome", "black and white", "black",
+                "white", "grayscale", "greyscale", "grey",
+                "gray", "minimalist", "minimal", "neutral",
+                "no colour", "no color"
+            ]
+        },
+
+        "shrekbook-special": {
+            description: "The distinctive ShrekBook identity, with unusual greens and onion-inspired styling.",
+            keywords: [
+                "shrek", "shrekbook", "onion", "green",
+                "unique", "special", "quirky", "playful",
+                "unusual", "distinctive", "custom"
+            ]
+        },
+
+        "1990s": {
+            description: "An unfinished early-web experiment with primitive controls and muted grey surfaces.",
+            keywords: [
+                "1990s", "90s", "early web", "pre web",
+                "unfinished", "prototype", "experimental",
+                "old internet", "primitive website",
+                "grey website", "gray website", "retro web"
+            ],
+            swatches: ["#c8c8c8", "#dedede", "#000080"]
+        },
+
+        "1980s": {
+            description: "A monochrome VHS prototype with scanlines, pixelation and subtle visual instability.",
+            keywords: [
+                "1980s", "80s", "vhs", "cassette",
+                "tape", "television", "crt", "scanlines",
+                "pixelated", "monochrome", "flickering",
+                "unstable", "retro television", "analog"
+            ],
+            swatches: ["#080808", "#151515", "#aaaaaa"]
+        },
+
+        "1970s": {
+            description: "A barely feasible experimental mainframe with olive tones, amber phosphor and heavy jitter.",
+            keywords: [
+                "1970s", "70s", "mainframe", "amber",
+                "olive", "analog", "research laboratory",
+                "research computer", "primitive computer",
+                "unstable", "heavy jitter", "grainy",
+                "early computing", "flickering computer"
+            ],
+            swatches: ["#17180f", "#29291c", "#c0a04e"]
+        },
+
+        "1960s": {
+            description: "An almost incomprehensible binary research prototype. Its displayed text is encoded in binary.",
+            keywords: [
+                "1960s", "60s", "binary", "zeros and ones",
+                "zeroes and ones", "0101", "mainframe",
+                "ancient computer", "experimental machine",
+                "primitive computing", "room sized computer",
+                "unreadable", "extremely old", "binary interface",
+                "maximum chaos", "extreme jitter"
+            ],
+            swatches: ["#020704", "#06130a", "#a5e6a5"]
+        },
+
+        "random-colors": {
+            description: "A randomly generated colour palette with changing background, surface and accent colours.",
+            keywords: [
+                "random colours", "random colors",
+                "random palette", "colour generator",
+                "color generator", "colourful", "colorful",
+                "surprise colours", "surprise colors",
+                "unique colours", "unique colors",
+                "custom palette", "vibrant colours"
+            ]
+        },
+
+        "random-selection": {
+            description: "A surprise selection from all the fixed ShrekBook themes.",
+            keywords: [
+                "surprise me", "random theme", "choose for me",
+                "pick for me", "anything", "no preference",
+                "unpredictable", "random selection",
+                "choose randomly", "whatever"
+            ]
+        }
+    };
     let selector;
     let shuffleButton;
 
@@ -304,7 +475,328 @@
 
         return palette;
     }
+    /* ============================================================
+    SHREKBOOK THEME AI — RECOMMENDATION ENGINE
+    ============================================================ */
 
+    function recommendThemes(prompt) {
+
+        const query = String(prompt || "")
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+
+        if (!query) return [];
+
+        const ranked = THEMES.map((theme, index) => {
+
+            const profile = THEME_AI_PROFILES[theme];
+
+            if (!profile) return null;
+
+            const keywords = profile.keywords || [];
+
+            const matches = keywords.filter(keyword => {
+                return query.includes(keyword.toLowerCase());
+            });
+
+            let score = 0;
+
+            matches.forEach(keyword => {
+                score += keyword.includes(" ") ? 5 : 2;
+            });
+
+            const normalizedTheme = theme.replace(/-/g, " ");
+
+            if (query.includes(normalizedTheme)) {
+                score += 15;
+            }
+
+            return {
+                theme,
+                label: LABELS[theme] || theme,
+                description: profile.description,
+                matches,
+                score,
+                index,
+                palette: PALETTES[theme] || null
+            };
+
+        }).filter(Boolean);
+
+        ranked.sort((a, b) =>
+            b.score - a.score || a.index - b.index
+        );
+
+        if (ranked.length && ranked[0].score === 0) {
+
+            const fallbacks = ["default", "dark", "ivory"];
+
+            return fallbacks.map(theme =>
+                ranked.find(item => item.theme === theme)
+            ).filter(Boolean);
+        }
+
+        return ranked
+            .filter(item => item.score > 0)
+            .slice(0, 3);
+    }
+
+
+    /* ============================================================
+    SHREKBOOK THEME AI — COLOUR PREVIEWS
+    ============================================================ */
+
+    function getThemeAIColors(theme) {
+
+        const profile = THEME_AI_PROFILES[theme];
+
+        if (theme === "random-colors") {
+            const palette = getRandomPalette();
+
+            return [
+                palette.bg,
+                palette.surface,
+                palette.accent
+            ];
+        }
+
+        if (PALETTES[theme]) {
+            const palette = PALETTES[theme];
+
+            return [
+                palette.bg,
+                palette.surface,
+                palette.accent
+            ];
+        }
+
+        return profile ? profile.swatches || [] : [];
+    }
+
+
+    /* ============================================================
+    SHREKBOOK THEME AI — USER INTERFACE
+    ============================================================ */
+
+    function createThemeAI(wrapper) {
+
+        const aiWrapper = document.createElement("div");
+        aiWrapper.className = "theme-ai";
+
+        const toggle = document.createElement("button");
+        toggle.type = "button";
+        toggle.className = "theme-ai-toggle";
+        toggle.textContent = "✨ Theme AI";
+        toggle.setAttribute("aria-expanded", "false");
+        toggle.setAttribute("aria-controls", "shrekbook-theme-ai-panel");
+
+        const panel = document.createElement("section");
+        panel.id = "shrekbook-theme-ai-panel";
+        panel.className = "theme-ai-panel";
+        panel.hidden = true;
+        panel.setAttribute("aria-label", "ShrekBook Theme AI");
+
+        // Header
+
+        const header = document.createElement("div");
+        header.className = "theme-ai-header";
+
+        const heading = document.createElement("strong");
+        heading.textContent = "🧅 ShrekBook Theme AI";
+
+        const close = document.createElement("button");
+        close.type = "button";
+        close.className = "theme-ai-close";
+        close.textContent = "×";
+        close.setAttribute("aria-label", "Close Theme AI");
+
+        header.append(heading, close);
+
+        // Description
+
+        const subtitle = document.createElement("p");
+        subtitle.className = "theme-ai-subtitle";
+        subtitle.textContent =
+            "Describe the appearance you're looking for. I'll find the best matching themes.";
+
+        // Search form
+
+        const form = document.createElement("form");
+        form.className = "theme-ai-form";
+
+        const input = document.createElement("input");
+        input.type = "text";
+        input.maxLength = 150;
+        input.placeholder =
+            "e.g. A dark, calm blue theme...";
+        input.setAttribute(
+            "aria-label",
+            "Describe your preferred theme"
+        );
+
+        const submit = document.createElement("button");
+        submit.type = "submit";
+        submit.className = "theme-ai-submit";
+        submit.textContent = "Find themes";
+
+        form.append(input, submit);
+
+        // Results
+
+        const results = document.createElement("div");
+        results.className = "theme-ai-results";
+        results.setAttribute("aria-live", "polite");
+
+        // Panel status
+
+        const status = document.createElement("p");
+        status.className = "theme-ai-status";
+
+        panel.append(
+            header,
+            subtitle,
+            form,
+            results,
+            status
+        );
+
+        // Toggle panel
+
+        toggle.addEventListener("click", () => {
+
+            panel.hidden = !panel.hidden;
+
+            toggle.setAttribute(
+                "aria-expanded",
+                String(!panel.hidden)
+            );
+
+            if (!panel.hidden) {
+                input.focus();
+            }
+        });
+
+        close.addEventListener("click", () => {
+            panel.hidden = true;
+            toggle.setAttribute("aria-expanded", "false");
+        });
+
+        // Generate recommendations
+
+        form.addEventListener("submit", event => {
+
+            event.preventDefault();
+
+            const recommendations = recommendThemes(input.value);
+
+            results.replaceChildren();
+            status.textContent = "";
+
+            if (!recommendations.length) {
+
+                status.textContent =
+                    "Describe a mood, colour, era or visual style first.";
+
+                return;
+            }
+
+            const title = document.createElement("p");
+            title.className = "theme-ai-result-heading";
+            title.textContent = "Your best matches:";
+
+            results.appendChild(title);
+
+            recommendations.forEach((recommendation, index) => {
+
+                const card = document.createElement("article");
+                card.className = "theme-ai-card";
+
+                // Theme name
+
+                const name = document.createElement("strong");
+                name.className = "theme-ai-name";
+
+                name.textContent =
+                    `${index + 1}. ${recommendation.label}`;
+
+                // Description
+
+                const description = document.createElement("p");
+                description.className = "theme-ai-description";
+                description.textContent =
+                    recommendation.description;
+
+                // Matching characteristics
+
+                if (recommendation.matches.length) {
+
+                    const matched = document.createElement("small");
+                    matched.className = "theme-ai-matches";
+
+                    matched.textContent =
+                        "Matched: " +
+                        recommendation.matches.slice(0, 4).join(", ");
+
+                    card.append(name, description, matched);
+
+                } else {
+
+                    card.append(name, description);
+                }
+
+                // Colour preview
+
+                const colors = getThemeAIColors(recommendation.theme);
+
+                if (colors.length) {
+
+                    const swatches = document.createElement("div");
+                    swatches.className = "theme-ai-swatches";
+
+                    colors.forEach(color => {
+
+                        const swatch = document.createElement("span");
+                        swatch.className = "theme-ai-swatch";
+                        swatch.style.backgroundColor = color;
+
+                        swatches.appendChild(swatch);
+                    });
+
+                    card.appendChild(swatches);
+                }
+
+                // Apply button
+
+                const apply = document.createElement("button");
+                apply.type = "button";
+                apply.className = "theme-ai-apply";
+                apply.textContent =
+                    recommendation.theme === "random-selection"
+                        ? "Surprise me"
+                        : "Apply theme";
+
+                apply.addEventListener("click", () => {
+
+                    applyTheme(recommendation.theme);
+
+                    const actualTheme = getSavedTheme();
+
+                    status.textContent =
+                        actualTheme === recommendation.theme
+                            ? `${LABELS[actualTheme]} applied!`
+                            : `Random selection applied: ${LABELS[actualTheme]}`;
+                });
+
+                card.appendChild(apply);
+                results.appendChild(card);
+            });
+        });
+
+        aiWrapper.append(toggle, panel);
+        wrapper.appendChild(aiWrapper);
+    }
     function createThemeSelector() {
         if (document.getElementById("theme-selector")) return;
 
@@ -376,6 +868,8 @@
 
         wrapper.appendChild(select);
         wrapper.appendChild(shuffle);
+
+        createThemeAI(wrapper);
 
         nav.appendChild(wrapper);
 
@@ -569,6 +1063,33 @@
         list: () => [...THEMES],
         shuffle: shuffleColors,
         random: selectRandomTheme,
+        ai: {
+
+            recommend: requestThemeAI,
+
+            apply: async prompt => {
+
+                const result = await requestThemeAI(prompt);
+
+                const best = result.recommendations[0];
+
+                return best
+                    ? applyTheme(best.theme)
+                    : null;
+            },
+
+            data: () => THEMES.map(theme => ({
+                theme,
+                label: LABELS[theme],
+                description: THEME_AI_PROFILES[theme].description,
+                keywords: [
+                    ...(THEME_AI_PROFILES[theme].keywords || [])
+                ],
+                palette: PALETTES[theme]
+                    ? { ...PALETTES[theme] }
+                    : null
+            }))
+        },   
         getPalette: () => {
             const theme = getSavedTheme();
 
