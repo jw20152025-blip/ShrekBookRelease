@@ -938,6 +938,12 @@
         resetFeedback.addEventListener("click", () => {
             saveThemeAIFeedback({});
             learningInfo.textContent = "Personal learning: 0 theme ratings saved on this browser.";
+            panel.querySelectorAll(".theme-ai-feedback-button").forEach(button => {
+                button.disabled = false;
+            });
+            panel.querySelectorAll(".theme-ai-feedback small").forEach(label => {
+                label.textContent = "Was this a good match?";
+            });
             status.textContent = "Your theme feedback has been reset.";
         });
 
@@ -1002,11 +1008,16 @@
                     like.className = "theme-ai-feedback-button";
                     like.textContent = "👍 Good match";
                     like.setAttribute("aria-label", "Prefer " + LABELS[theme]);
+                    const savedPreference = getThemeAIFeedbackScore(theme);
+                    like.disabled = savedPreference > 0;
                     const dislike = document.createElement("button");
                     dislike.type = "button";
                     dislike.className = "theme-ai-feedback-button";
                     dislike.textContent = "👎 Not for me";
                     dislike.setAttribute("aria-label", "Avoid recommending " + LABELS[theme]);
+                    dislike.disabled = savedPreference < 0;
+                    if (savedPreference > 0) feedbackLabel.textContent = "You've marked this as a good match before.";
+                    if (savedPreference < 0) feedbackLabel.textContent = "You've asked me to recommend this less often.";
                     like.addEventListener("click", () => {
                         const value = rateThemeAITheme(theme, 1);
                         learningInfo.textContent = "Personal learning: " + getThemeAIFeedbackSummary() + " theme ratings saved on this browser.";
