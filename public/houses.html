@@ -22,6 +22,19 @@
 .house-member{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--sb-border,#ddd)}.house-member img{width:38px;height:38px;border-radius:50%;object-fit:cover}.house-member-info{flex:1;min-width:0}
 .house-invite{display:flex;gap:8px;flex-wrap:wrap}.house-invite input{flex:1;min-width:180px}
 .house-empty{padding:20px;text-align:center;color:var(--sb-muted,#777)}
+
+.house-room-button{display:block;width:100%;text-align:left;color:var(--sb-text,#222);cursor:pointer;font:inherit}
+.house-room-button.active{border-color:var(--sb-accent,#398b52);background:var(--sb-accent,#398b52)18}
+.house-chat-messages{display:flex;flex-direction:column;gap:9px;max-height:420px;overflow:auto;padding:10px;border:1px solid var(--sb-border,#ddd);border-radius:10px;background:var(--sb-bg,#fff)}
+.house-chat-message{padding:10px 12px;border:1px solid var(--sb-border,#ddd);border-radius:10px;overflow-wrap:anywhere}
+.house-chat-author{font-weight:700;margin-bottom:5px}
+.house-message-form{display:flex;gap:9px;margin-top:10px}
+.house-message-form textarea{flex:1;min-height:46px;max-height:140px;padding:10px;border:1px solid var(--sb-border,#ccc);border-radius:9px;background:var(--sb-bg,#fff);color:var(--sb-text,#222);font:inherit}
+.house-check{display:flex;align-items:center;gap:8px;font-size:14px}
+.house-check input{width:auto}
+.house-form.house-panel{margin-top:12px}
+@media(max-width:520px){.house-message-form{flex-direction:column}.house-message-form button{width:100%}}
+
 .house-two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media(max-width:650px){.house-two{grid-template-columns:1fr}.house-hero{padding:20px}.house-hero h1{font-size:24px}}
 </style>
