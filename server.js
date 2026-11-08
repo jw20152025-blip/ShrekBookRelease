@@ -12716,6 +12716,28 @@ app.delete("/api/houses/:id/rooms/:roomId", async (req, res) => {
     }
 });
 
+app.post("/api/houses/:id/upgrade", async (req, res) => {
+    const userId = requireHouseLogin(req, res);
+    if (!userId) return;
+    const houseId = parseHouseId(req.params.id);
+    const targetTypeId = Number(req.body?.houseTypeId);
+    if (!houseId || !Number.isSafeInteger(targetTypeId)) {
+        return res.status(400).json({ error: "A valid House and upgrade type are required." });
+    }
+    try {
+        const { data, error } = await supabase.rpc("upgrade_house_purchase", {
+            p_owner_id: userId,
+            p_house_id: houseId,
+            p_target_house_type_id: targetTypeId
+        });
+        if (error) return res.status(400).json({ error: error.message || "House upgrade failed." });
+        res.json({ success: true, house: await decorateHouse(data) });
+    } catch (error) {
+        console.error("HOUSE UPGRADE ERROR:", error);
+        res.status(500).json({ error: "Failed to upgrade House." });
+    }
+});
+
 async function getShrekAIUser(req) {
     try {
 
