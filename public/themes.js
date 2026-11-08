@@ -21,6 +21,8 @@
         "sunset",
         "monochrome",
         "shrekbook-special",
+        "1990s",
+        "1980s",
         "random-colors",
         "random-selection"
     ];
@@ -112,6 +114,8 @@
         ocean: "🌊 Ocean",
         sunset: "🌅 Sunset",
         monochrome: "⚫ Monochrome",
+        "1990s": "💾 1990s — Pre-Web Test",
+        "1980s": "📼 1980s — VHS Prototype",
         "shrekbook-special": "🧅 ShrekBook Special",
         "random-colors": "🌈 Random Colors",
         "random-selection": "🎲 Random Selection"
@@ -327,6 +331,10 @@
                     "monochrome",
                     "shrekbook-special"
                 ]
+            },
+            {
+                label: "Experimental eras",
+                themes: ["1990s", "1980s"]
             },
             {
                 label: "Random themes",

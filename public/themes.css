@@ -803,3 +803,205 @@ html[data-theme="legacy"] .offline-status {
 html[data-theme="legacy"] hr {
     border-color: #808080;
 }
+/* ============================================================
+   SHREKBOOK 1990s — PRE-WEB TEST
+   Early internet prototype aesthetic.
+   ============================================================ */
+
+:root[data-theme="1990s"] {
+    --sb-bg: #c8c8c8;
+    --sb-surface: #dedede;
+    --sb-text: #222222;
+    --sb-muted: #666666;
+    --sb-border: #888888;
+    --sb-accent: #000080;
+    --sb-accent-text: #ffffff;
+
+    font-family: "Courier New", monospace;
+}
+
+html[data-theme="1990s"] body {
+    background: #c8c8c8 !important;
+    color: #222 !important;
+    font-family: "Courier New", monospace !important;
+    letter-spacing: 0;
+}
+
+html[data-theme="1990s"] * {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+
+html[data-theme="1990s"] .navbar,
+html[data-theme="1990s"] header {
+    background: #b5b5b5 !important;
+    border-bottom: 2px solid #777 !important;
+}
+
+html[data-theme="1990s"] .card,
+html[data-theme="1990s"] .post,
+html[data-theme="1990s"] .panel,
+html[data-theme="1990s"] .container {
+    background: #dedede !important;
+    border: 1px dashed #777 !important;
+}
+
+html[data-theme="1990s"] button,
+html[data-theme="1990s"] input,
+html[data-theme="1990s"] select,
+html[data-theme="1990s"] textarea {
+    background: #e5e5e5 !important;
+    color: #111 !important;
+    border: 2px outset #aaa !important;
+    border-radius: 0 !important;
+    font-family: "Courier New", monospace !important;
+}
+
+html[data-theme="1990s"] button:active {
+    border-style: inset !important;
+}
+
+html[data-theme="1990s"] a {
+    color: #0000aa !important;
+    text-decoration: underline !important;
+}
+
+html[data-theme="1990s"] a:visited {
+    color: #551a8b !important;
+}
+
+html[data-theme="1990s"] img {
+    image-rendering: auto;
+    border: 1px solid #888;
+}
+
+html[data-theme="1990s"] hr {
+    border: 0;
+    border-top: 1px dashed #777;
+}
+
+html[data-theme="1990s"] ::selection {
+    background: #000080;
+    color: white;
+}
+/* ============================================================
+   SHREKBOOK 1980s — VHS PROTOTYPE
+   Monochrome, unstable cassette-era interface.
+   ============================================================ */
+
+:root[data-theme="1980s"] {
+    --sb-bg: #080808;
+    --sb-surface: #151515;
+    --sb-text: #d0d0d0;
+    --sb-muted: #777777;
+    --sb-border: #555555;
+    --sb-accent: #aaaaaa;
+    --sb-accent-text: #000000;
+
+    font-family: "Courier New", monospace;
+}
+
+html[data-theme="1980s"] body {
+    background: #080808 !important;
+    color: #c5c5c5 !important;
+    font-family: "Courier New", monospace !important;
+    filter: grayscale(1);
+    animation: sb80s-jitter 0.18s infinite;
+    overflow-x: hidden;
+}
+
+html[data-theme="1980s"] * {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    text-shadow: 1px 0 #777, -1px 0 #333 !important;
+}
+
+html[data-theme="1980s"] .navbar,
+html[data-theme="1980s"] header {
+    background: #111 !important;
+    border-bottom: 2px dashed #777 !important;
+}
+
+html[data-theme="1980s"] .card,
+html[data-theme="1980s"] .post,
+html[data-theme="1980s"] .panel,
+html[data-theme="1980s"] .container {
+    background: #111 !important;
+    border: 1px dashed #666 !important;
+}
+
+html[data-theme="1980s"] button,
+html[data-theme="1980s"] input,
+html[data-theme="1980s"] select,
+html[data-theme="1980s"] textarea {
+    background: #171717 !important;
+    color: #ccc !important;
+    border: 1px solid #888 !important;
+    border-radius: 0 !important;
+    font-family: "Courier New", monospace !important;
+}
+
+html[data-theme="1980s"] a {
+    color: #ddd !important;
+    text-decoration: underline !important;
+}
+
+html[data-theme="1980s"] img,
+html[data-theme="1980s"] video {
+    filter: grayscale(1) contrast(1.3);
+    image-rendering: pixelated;
+}
+
+html[data-theme="1980s"] body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 99999;
+    opacity: 0.18;
+    background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 2px,
+        #aaa 3px,
+        transparent 4px
+    );
+}
+
+html[data-theme="1980s"] body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 99998;
+    opacity: 0.08;
+    background: repeating-linear-gradient(
+        90deg,
+        transparent 0px,
+        transparent 3px,
+        #fff 4px,
+        transparent 5px
+    );
+    animation: sb80s-flicker 0.12s infinite;
+}
+
+@keyframes sb80s-jitter {
+    0%   { transform: translate(0, 0); }
+    25%  { transform: translate(0.3px, -0.2px); }
+    50%  { transform: translate(-0.2px, 0.3px); }
+    75%  { transform: translate(0.2px, 0.1px); }
+    100% { transform: translate(0, 0); }
+}
+
+@keyframes sb80s-flicker {
+    0%, 100% { opacity: 0.06; }
+    50%      { opacity: 0.13; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html[data-theme="1980s"] body,
+    html[data-theme="1980s"] body::after {
+        animation: none !important;
+    }
+}
