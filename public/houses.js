@@ -34,7 +34,13 @@ function renderMembers(data){
 }
 function renderRooms(data){
  const rooms=data.rooms||[];
- return rooms.length?rooms.map(r=>'<button type="button" class="house-room house-room-button '+(selectedRoomId===r.id?"active":"")+'" data-open-room="'+esc(r.id)+'"><strong>'+(r.is_private?"🔒 ":"💬 ")+esc(r.name)+'</strong><div class="house-muted">'+esc(r.description||(r.is_private?"Private room":"House chat"))+'</div></button>').join(""):'<div class="house-empty">This House has no rooms yet.</div>';
+ const canManage=["owner","admin"].includes(data.membership?.role);
+ return rooms.length?rooms.map(r=>{
+  const canEdit=canManage||r.owner_id===currentUser?.id;
+  return '<div class="house-room-entry"><button type="button" class="house-room house-room-button '+(selectedRoomId===r.id?"active":"")+'" data-open-room="'+esc(r.id)+'"><strong>'+(r.is_private?"🔒 ":"💬 ")+esc(r.name)+'</strong><div class="house-muted">'+esc(r.description||(r.is_private?"Private room":"House chat"))+'</div></button>'+
+   (canEdit?'<div class="house-room-tools"><button type="button" class="secondary" data-edit-room="'+esc(r.id)+'">Edit</button>'+(canManage?'<button type="button" class="danger" data-delete-room="'+esc(r.id)+'">Delete</button>':'')+'</div>':'')+
+  '</div>';
+ }).join(""):'<div class="house-empty">This House has no rooms yet.</div>';
 }
 async function openHouse(id){
  say("Opening House…");const d=await api("/api/houses/"+encodeURIComponent(id));selectedHouse=d;selectedRoomId=null;
@@ -72,6 +78,35 @@ $("#create-house-form").addEventListener("submit",async e=>{
 document.addEventListener("click",async e=>{
  const open=e.target.closest("[data-open-house]");if(open){try{await openHouse(open.dataset.openHouse);}catch(err){say(err.message);}return;}
  const room=e.target.closest("[data-open-room]");if(room){await openRoom(room.dataset.openRoom);return;}
+ const editRoom=e.target.closest("[data-edit-room]");
+ if(editRoom&&selectedHouse){
+  const id=selectedHouse.house.id,roomId=Number(editRoom.dataset.editRoom);
+  const current=(selectedHouse.rooms||[]).find(r=>Number(r.id)===roomId);
+  if(!current)return;
+  const name=prompt("Room name:",current.name);
+  if(name===null)return;
+  const description=prompt("Room description:",current.description||"");
+  if(description===null)return;
+  try{
+   await api("/api/houses/"+id+"/rooms/"+roomId,{method:"PUT",body:JSON.stringify({name,description})});
+   const wasSelected=selectedRoomId===roomId;
+   await openHouse(id);
+   if(wasSelected)await openRoom(roomId);
+   say("Room updated.");
+  }catch(err){say(err.message);}
+  return;
+ }
+ const deleteRoom=e.target.closest("[data-delete-room]");
+ if(deleteRoom&&selectedHouse){
+  const id=selectedHouse.house.id,roomId=Number(deleteRoom.dataset.deleteRoom);
+  if(!confirm("Delete this room? Its room content may also be removed."))return;
+  try{
+   await api("/api/houses/"+id+"/rooms/"+roomId,{method:"DELETE"});
+   if(selectedRoomId===roomId)selectedRoomId=null;
+   await openHouse(id);say("Room deleted.");
+  }catch(err){say(err.message);}
+  return;
+ }
  const inv=e.target.closest("[data-invite-action]");if(inv){try{await api("/api/houses/invitations/"+inv.dataset.inviteId+"/"+inv.dataset.inviteAction,{method:"POST",body:"{}"});say(inv.dataset.inviteAction==="accept"?"Invitation accepted.":"Invitation declined.");await Promise.all([loadInvitations(),loadHouses()]);}catch(err){say(err.message);}return;}
  if(e.target.closest("[data-close-detail]")){detail.hidden=true;selectedHouse=null;selectedRoomId=null;return;}
  if(e.target.closest("[data-leave-house]")){if(!selectedHouse||!confirm("Leave this House?"))return;try{await api("/api/houses/"+selectedHouse.house.id+"/leave",{method:"DELETE"});detail.hidden=true;selectedHouse=null;say("You left the House.");await loadHouses();}catch(err){say(err.message);}return;}
