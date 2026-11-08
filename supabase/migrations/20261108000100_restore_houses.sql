@@ -432,9 +432,7 @@ create policy "Members can read permitted House call participants"
 create policy "Call participants can read their signals"
   on public.house_call_signals for select to authenticated
   using (
-    sender_id = (select auth.uid())
-    or recipient_id = (select auth.uid())
-    or exists (
+    exists (
       select 1 from public.house_calls c
       where c.id = house_call_signals.call_id
         and public.can_access_house_room(c.room_id)
