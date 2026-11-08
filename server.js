@@ -12653,8 +12653,8 @@ app.get("/api/houses/:id", async (req, res) => {
             });
         }
 
-        const membership = await getHouseMembership(houseId, userId);
-        if (house.owner_id !== userId && !membership) {
+        const accessMembership = await getHouseMembership(houseId, userId);
+        if (house.owner_id !== userId && !accessMembership) {
             return res.status(403).json({
                 error: "You must be a member of this House to enter."
             });
