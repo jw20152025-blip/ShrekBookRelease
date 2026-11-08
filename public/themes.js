@@ -479,9 +479,12 @@
     SHREKBOOK THEME AI — RECOMMENDATION ENGINE
     ============================================================ */
 
-        const THEME_AI_MODEL = "onnx-community/SmolLM2-135M-Instruct-ONNX-MHA";
+    const THEME_AI_MODEL = "onnx-community/SmolLM2-135M-Instruct-ONNX-MHA";
+    const THEME_AI_EMBEDDING_MODEL = "Xenova/all-MiniLM-L6-v2";
     const TRANSFORMERS_CDN = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
     let themeAIPipelinePromise = null;
+    let themeAIEmbedderPromise = null;
+    let themeAIVectorsPromise = null;
     const themeAIHistory = [];
 
     const THEME_AI_DATA = Object.fromEntries(THEMES.map(theme => {
@@ -493,12 +496,16 @@
         }];
     }));
 
+    const THEME_AI_CANDIDATES = THEMES.filter(theme =>
+        theme !== "random-selection" && theme !== "random-colors"
+    );
+
     function getThemeAICatalogue() {
         return THEMES.map(theme => ({
-            id:theme,
-            label:LABELS[theme],
-            description:THEME_AI_DATA[theme].description,
-            keywords:THEME_AI_DATA[theme].keywords
+            id: theme,
+            label: LABELS[theme],
+            description: THEME_AI_DATA[theme].description,
+            keywords: THEME_AI_DATA[theme].keywords
         }));
     }
 
@@ -508,22 +515,22 @@
                 if (onProgress) onProgress("Loading the AI runtime...");
                 const transformers = await import(TRANSFORMERS_CDN);
                 transformers.env.useBrowserCache = true;
-                if (onProgress) onProgress("Loading SmolLM2-135M. First download is about 137 MB.");
+                if (onProgress) onProgress("Loading SmolLM2-135M. Its first download is about 137 MB.");
 
                 return await transformers.pipeline(
                     "text-generation",
                     THEME_AI_MODEL,
                     {
-                        dtype:"q8",
+                        dtype: "q8",
                         progress_callback: info => {
                             if (!onProgress || !info) return;
                             if (info.status === "progress") {
                                 const amount = Number(info.progress);
                                 onProgress(Number.isFinite(amount)
-                                    ? "Downloading AI model: " + Math.round(amount) + "%"
-                                    : "Downloading AI model files...");
+                                    ? "Downloading SmolLM2: " + Math.round(amount) + "%"
+                                    : "Downloading SmolLM2 files...");
                             } else if (info.status === "done") {
-                                onProgress("AI model file loaded.");
+                                onProgress("SmolLM2 model file loaded.");
                             }
                         }
                     }
@@ -536,6 +543,37 @@
         return themeAIPipelinePromise;
     }
 
+    async function loadThemeAIEmbedder(onProgress) {
+        if (!themeAIEmbedderPromise) {
+            themeAIEmbedderPromise = (async () => {
+                if (onProgress) onProgress("Loading the semantic matching model...");
+                const transformers = await import(TRANSFORMERS_CDN);
+                transformers.env.useBrowserCache = true;
+                return await transformers.pipeline(
+                    "feature-extraction",
+                    THEME_AI_EMBEDDING_MODEL,
+                    {
+                        dtype: "q8",
+                        progress_callback: info => {
+                            if (!onProgress || !info) return;
+                            if (info.status === "progress") {
+                                const amount = Number(info.progress);
+                                onProgress(Number.isFinite(amount)
+                                    ? "Downloading semantic model: " + Math.round(amount) + "%"
+                                    : "Downloading semantic model files...");
+                            }
+                        }
+                    }
+                );
+            })().catch(error => {
+                themeAIEmbedderPromise = null;
+                themeAIVectorsPromise = null;
+                throw error;
+            });
+        }
+        return themeAIEmbedderPromise;
+    }
+
     function normalizeMatchText(value) {
         return String(value || "").toLowerCase()
             .replace(/[^a-z0-9\s-]/g, " ")
@@ -543,123 +581,202 @@
             .trim();
     }
 
-    function extractThemeIds(text) {
-    const source = String(text || '').toLowerCase();
-    const found = [];
-    for (const theme of THEMES) {
-        const match = new RegExp('(^|[^a-z0-9])' + theme + '($|[^a-z0-9])', 'i').exec(source);
-        if (match) found.push({ theme, index: match.index });
+    function getThemeAIDocument(theme) {
+        const item = THEME_AI_DATA[theme];
+        return [
+            LABELS[theme] || theme,
+            item.description,
+            "Visual style and aesthetic:",
+            item.keywords.join(", ")
+        ].join(". ");
     }
-    const ids = found.sort((a, b) => a.index - b.index).map(x => x.theme).filter((x, i, a) => a.indexOf(x) === i);
-    if (ids.length) return ids;
-    const normalized = source.replace(/[^a-z0-9]+/g, ' ').trim();
-    const aliases = [['shrekbook-special','shrekbook special','shrekbook','onion'],['random-colors','random colors','random colours'],['random-selection','random selection','surprise me'],['1990s','1990s','90s'],['1980s','1980s','80s','vhs'],['1970s','1970s','70s'],['1960s','1960s','60s'],['monochrome','monochrome','black and white'],['midnight','midnight'],['terminal','terminal'],['ocean','ocean'],['sunset','sunset'],['ivory','ivory','cream'],['legacy','legacy'],['dark','dark'],['default','default','normal']];
-    for (const entry of aliases) if (entry.slice(1).some(label => normalized.includes(label))) return [entry[0]];
-    return [];
-}
+
+    async function embedThemeText(embedder, value) {
+        const output = await embedder(String(value || "").slice(0, 1200), {
+            pooling: "mean",
+            normalize: true
+        });
+        if (output && output.data) return Array.from(output.data);
+        if (output && typeof output.tolist === "function") {
+            const nested = output.tolist();
+            return Array.isArray(nested[0]) ? nested[0] : nested;
+        }
+        throw new Error("The semantic model returned an unsupported embedding format.");
+    }
+
+    function cosineSimilarity(left, right) {
+        const length = Math.min(left.length, right.length);
+        if (!length) return 0;
+        let dot = 0;
+        let leftNorm = 0;
+        let rightNorm = 0;
+        for (let i = 0; i < length; i++) {
+            dot += left[i] * right[i];
+            leftNorm += left[i] * left[i];
+            rightNorm += right[i] * right[i];
+        }
+        const denominator = Math.sqrt(leftNorm * rightNorm);
+        return denominator ? dot / denominator : 0;
+    }
+
+    function blendEmbeddings(primary, secondary, secondaryWeight) {
+        const length = Math.min(primary.length, secondary.length);
+        const result = new Array(length);
+        let norm = 0;
+        for (let i = 0; i < length; i++) {
+            result[i] = primary[i] * (1 - secondaryWeight) + secondary[i] * secondaryWeight;
+            norm += result[i] * result[i];
+        }
+        const divisor = Math.sqrt(norm) || 1;
+        return result.map(value => value / divisor);
+    }
+
+    async function getThemeAIVectors(embedder, onProgress) {
+        if (!themeAIVectorsPromise) {
+            themeAIVectorsPromise = Promise.all(THEME_AI_CANDIDATES.map(async theme => ({
+                theme,
+                vector: await embedThemeText(embedder, getThemeAIDocument(theme))
+            }))).catch(error => {
+                themeAIVectorsPromise = null;
+                throw error;
+            });
+        }
+        if (onProgress) onProgress("Building the theme catalogue's semantic index...");
+        return themeAIVectorsPromise;
+    }
+
+    function lexicalTieBreak(query, theme) {
+        const normalizedQuery = normalizeMatchText(query);
+        const profile = THEME_AI_DATA[theme];
+        const terms = normalizedQuery.split(" ").filter(term => term.length > 2);
+        const phrases = [profile.description, ...(profile.keywords || [])]
+            .map(normalizeMatchText)
+            .filter(Boolean);
+        let score = 0;
+        for (const phrase of phrases) {
+            if (phrase.length > 3 && normalizedQuery.includes(phrase)) score += 0.035;
+            for (const term of terms) {
+                if (phrase.split(" ").includes(term)) score += 0.006;
+            }
+        }
+        return Math.min(score, 0.12);
+    }
+
+    function extractGeneratedText(generated) {
+        if (!Array.isArray(generated) || !generated.length) return "";
+        return generated.map(item => {
+            if (typeof item === "string") return item;
+            if (!item) return "";
+            if (typeof item.generated_text === "string") return item.generated_text;
+            if (Array.isArray(item.generated_text)) {
+                return item.generated_text.map(part =>
+                    typeof part === "string" ? part : part && part.text ? part.text : ""
+                ).join(" ");
+            }
+            return "";
+        }).filter(Boolean).join(" ").trim();
+    }
 
     async function requestThemeAI(prompt, onProgress) {
-        const cleanPrompt = String(prompt || '').trim();
+        const cleanPrompt = String(prompt || "").trim();
         if (!cleanPrompt || cleanPrompt.length > 300) {
-            throw new Error('Enter a description of up to 300 characters.');
+            throw new Error("Enter a description of up to 300 characters.");
         }
 
-        const catalogueText = getThemeAICatalogue()
-            .filter(item => item.id !== 'random-selection' && item.id !== 'random-colors')
-            .map(item => item.id + ' — ' + item.description + ' Keywords: ' + item.keywords.slice(0, 3).join(', '))
-            .join(String.fromCharCode(10));
-        const nl = String.fromCharCode(10);
-
-        const modelPrompt =
-            'You are ShrekBook Theme AI. Read the user request and infer its mood, interests and visual aesthetic. Pop-culture references and memes should be interpreted by their meaning. A modern meme does not imply a retro theme.' + nl +
-            'Choose the SINGLE best matching theme from the allowed IDs below. You MUST answer with exactly one allowed ID and nothing else.' + nl +
-            'Allowed IDs: default, dark, legacy, ivory, midnight, terminal, ocean, sunset, monochrome, shrekbook-special, 1990s, 1980s, 1970s, 1960s.' + nl +
-            'Theme guide:' + nl + catalogueText + nl +
-            'User request: ' + cleanPrompt + nl +
-            'Best theme ID:';
-
-        let modelIds = [];
+        let interpretation = "";
         let modelError = null;
-        let generator = null;
-        let lastOutput = '';
+        let embedder = null;
+        let semanticVectors = null;
+        let queryVector = null;
+        let usedSemanticModel = false;
 
+        // SmolLM2 is always attempted. It interprets unfamiliar references as
+        // visual traits; it is not asked to guess a theme ID.
         try {
-            generator = await loadThemeAI(onProgress);
-            if (onProgress) onProgress('SmolLM2 is interpreting your request...');
-
-            // A second, shorter attempt helps when the small model ignores the
-            // requested output format on its first generation.
-            for (let attempt = 0; attempt < 2 && !modelIds.length; attempt++) {
-                const prompt = attempt === 0
-                    ? modelPrompt
-                    : 'Choose the best ShrekBook theme for this preference: "' + cleanPrompt + '". Reply with exactly ONE ID from: default, dark, legacy, ivory, midnight, terminal, ocean, sunset, monochrome, shrekbook-special, 1990s, 1980s, 1970s, 1960s. Modern memes are not automatically retro. ID:';
-
-                const generated = await generator(prompt, {
-                    max_new_tokens: 20,
+            const generator = await loadThemeAI(onProgress);
+            if (onProgress) onProgress("SmolLM2 is interpreting the reference...");
+            const generated = await generator(
+                "You are the visual-style interpreter for ShrekBook. Translate the user's reference into concrete interface aesthetics: mood, colours, contrast, texture, era, energy and visual motifs. Understand internet culture and fictional references from their described vibe. Do not choose or name a ShrekBook theme. Do not repeat the request. Return one concise sentence of visual traits.\\nUser reference: " + cleanPrompt + "\\nVisual interpretation:",
+                {
+                    max_new_tokens: 64,
                     do_sample: false,
                     return_full_text: false
-                });
-
-                const first = generated && generated[0];
-                let completion = typeof first === 'string'
-                    ? first
-                    : first && typeof first.generated_text === 'string'
-                        ? first.generated_text
-                        : first && Array.isArray(first.generated_text)
-                            ? first.generated_text.map(part => part.text || '').join(' ')
-                            : '';
-
-                if (Array.isArray(generated)) {
-                    completion += ' ' + generated.map(item =>
-                        typeof item === 'string' ? item :
-                        item && typeof item.generated_text === 'string' ? item.generated_text : ''
-                    ).join(' ');
                 }
-
-                lastOutput = completion;
-                modelIds = extractThemeIds(completion)
-                    .filter(theme => theme !== 'random-selection' && theme !== 'random-colors')
-                    .slice(0, 3);
-            }
-
-            if (!modelIds.length) {
-                console.warn('[ShrekBook Theme AI] SmolLM2 did not follow the ID format:', lastOutput);
-            }
+            );
+            interpretation = extractGeneratedText(generated);
+            if (interpretation.length > 700) interpretation = interpretation.slice(0, 700);
+            if (!interpretation) throw new Error("SmolLM2 returned an empty interpretation.");
         } catch (error) {
             modelError = error;
-            console.warn('[ShrekBook Theme AI] SmolLM2 could not run:', error);
+            console.warn("[ShrekBook Theme AI] SmolLM2 interpretation failed:", error);
         }
 
-        // Guarantee a useful result even if the small model produces malformed
-        // text. This is a neutral safety default, never keyword matching.
-        const usedSafeFallback = modelIds.length === 0;
-        if (usedSafeFallback) {
-            modelIds = ['default', 'dark', 'shrekbook-special'];
+        // MiniLM compares meanings, not just matching theme IDs or scanning the
+        // prompt for words. Its theme vectors are computed once and then cached.
+        try {
+            embedder = await loadThemeAIEmbedder(onProgress);
+            const directVector = await embedThemeText(embedder, cleanPrompt);
+            if (interpretation) {
+                const interpretedVector = await embedThemeText(
+                    embedder,
+                    "Visual aesthetic: " + interpretation
+                );
+                queryVector = blendEmbeddings(directVector, interpretedVector, 0.30);
+            } else {
+                queryVector = directVector;
+            }
+            semanticVectors = await getThemeAIVectors(embedder, onProgress);
+            usedSemanticModel = true;
+        } catch (error) {
+            console.warn("[ShrekBook Theme AI] Semantic matching model failed:", error);
         }
 
-        const recommendations = modelIds.slice(0, 3).map(theme => ({
-            theme,
-            source: usedSafeFallback ? 'safe-fallback' : 'model',
-            reason: THEME_AI_DATA[theme].description
+        let ranked;
+        if (usedSemanticModel && queryVector && semanticVectors) {
+            ranked = semanticVectors.map(item => ({
+                theme: item.theme,
+                score: cosineSimilarity(queryVector, item.vector) +
+                    lexicalTieBreak(cleanPrompt + " " + interpretation, item.theme)
+            })).sort((a, b) => b.score - a.score);
+        } else {
+            // Availability fallback only: still ranks every real theme and
+            // never hardcodes Default as the answer.
+            const fallbackQuery = cleanPrompt + " " + interpretation;
+            ranked = THEME_AI_CANDIDATES.map(theme => ({
+                theme,
+                score: lexicalTieBreak(fallbackQuery, theme)
+            })).sort((a, b) => b.score - a.score);
+        }
+
+        const recommendations = ranked.slice(0, 3).map((item, index) => ({
+            theme: item.theme,
+            source: usedSemanticModel ? "semantic-model" : "catalogue-fallback",
+            score: Number(item.score.toFixed(4)),
+            reason: THEME_AI_DATA[item.theme].description
         }));
 
         themeAIHistory.push({
             prompt: cleanPrompt,
+            interpretation,
             themes: recommendations.map(item => item.theme)
         });
-        while (themeAIHistory.length > 4) themeAIHistory.shift();
+        while (themeAIHistory.length > 6) themeAIHistory.shift();
 
-        const modelUsed = !modelError;
-        const summary = modelError
-            ? 'SmolLM2 could not load, so safe default suggestions are shown.'
-            : usedSafeFallback
-                ? 'SmolLM2 was used, but returned an unreadable answer. Safe suggestions are shown instead.'
-                : 'SmolLM2 generated these suggestions from the meaning and style of your description.';
+        const summary = usedSemanticModel
+            ? modelError
+                ? "Semantic AI matching selected these themes. SmolLM2 was unavailable, so the original description was matched directly."
+                : "SmolLM2 interpreted your reference, then a neural semantic model compared it with every ShrekBook theme."
+            : "The neural models could not load. Ranked catalogue matching is being used instead; no theme is forced as the default.";
 
-        if (onProgress) onProgress('Recommendations ready.');
-        return { summary, modelUsed, recommendations };
+        if (onProgress) onProgress("Recommendations ready.");
+        return {
+            summary,
+            modelUsed: !modelError,
+            semanticModelUsed: usedSemanticModel,
+            interpretation,
+            recommendations
+        };
     }
-
 
     /* ============================================================
     SHREKBOOK THEME AI — COLOUR PREVIEWS
@@ -731,7 +848,7 @@
 
         const modelInfo = document.createElement("small");
         modelInfo.className = "theme-ai-model-info";
-        modelInfo.textContent = "SmolLM2 · 135M parameters · Runs in your browser · First use downloads about 137 MB";
+        modelInfo.textContent = "SmolLM2 135M + MiniLM semantic AI · Runs locally in your browser · First use downloads both models";
 
         const form = document.createElement("form");
         form.className = "theme-ai-form";
@@ -801,9 +918,9 @@
 
                     const source = document.createElement("small");
                     source.className = "theme-ai-source";
-                    source.textContent = recommendation.source === "model"
-                        ? "SmolLM2 recommendation"
-                        : "Safe fallback recommendation";
+                    source.textContent = recommendation.source === "semantic-model"
+                        ? "Neural semantic match"
+                        : "Catalogue fallback (models unavailable)";
 
                     card.append(name, description, source);
 
