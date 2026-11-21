@@ -9,6 +9,7 @@ async function loadPreferences() {
         }
         if (!response.ok) throw new Error(data.error || "Could not load preferences.");
         document.getElementById("social").checked = data.preferences.social;
+        document.getElementById("new-posts").checked = data.preferences.new_posts === true;
         document.getElementById("announcements").checked = data.preferences.announcements;
         document.getElementById("security").checked = true;
     } catch (error) {
@@ -28,6 +29,7 @@ document.getElementById("save").addEventListener("click", async () => {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 social: document.getElementById("social").checked,
+                new_posts: document.getElementById("new-posts").checked,
                 announcements: document.getElementById("announcements").checked
             })
         });
