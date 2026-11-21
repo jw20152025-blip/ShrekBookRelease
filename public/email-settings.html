@@ -20,11 +20,12 @@
 <body>
 <header class="navbar"><div class="navbar-inner">
 <a href="/" class="logo">🧌 ShrekBook</a>
-<nav><a href="/">Home</a><a href="/profile.html">Profile</a></nav>
+<nav><a href="/">Home</a><a href="/profile.html">Profile</a><a href="/email-settings.html?v=2">📧 Email Settings</a></nav>
 </div></header>
 <main class="container email-settings">
 <section class="auth-box">
 <h1>📧 Email notification settings</h1>
+<p><strong>ShrekBook Email Settings · Version 2</strong></p>
 <p>Choose which ShrekBook emails you receive. Changes are saved to your account.</p>
 <div class="email-setting">
 <div><strong>Social activity</strong><p>Updates about social interactions and activity.</p></div>
@@ -39,7 +40,7 @@
 <input id="security" type="checkbox" checked disabled aria-label="Security emails are always enabled">
 </div>
 <button id="save" type="button">Save preferences</button>
-<button id="send-test" type="button" class="secondary-button">Send test email</button>
+<button id="send-test" type="button" style="margin-left:8px">Send test email</button>
 <p id="status" role="status"></p>
 </section>
 </main>
