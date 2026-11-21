@@ -59,6 +59,36 @@ function createEmailNotificationRouter({ supabase }) {
         res.json({ success: true, preferences: data });
     });
 
+
+    router.post("/test", requireUser, async (req, res) => {
+        if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) {
+            return res.status(503).json({
+                error: "Email delivery is not configured on the server. Set RESEND_API_KEY and EMAIL_FROM."
+            });
+        }
+
+        const user = req.session.user;
+        const username = String(user.username || "there").slice(0, 60);
+        const queued = await enqueueEmail(supabase, {
+            userId: user.id,
+            type: "account",
+            subject: "ShrekBook email test",
+            text: `Hi ${username}! This is a test email from ShrekBook. Your email notification delivery is connected.`,
+            html: `<h1>ShrekBook email test</h1><p>Hi ${escapeHtml(username)}! Your email notification delivery is connected.</p>`
+        });
+
+        if (!queued) {
+            return res.status(500).json({
+                error: "Could not add the test email to the queue. Confirm the email notification database migration has been run."
+            });
+        }
+
+        return res.status(202).json({
+            success: true,
+            message: "Test email queued. It should arrive shortly."
+        });
+    });
+
     return router;
 }
 
