@@ -2,6 +2,7 @@ const express = require("express");
 
 const DEFAULT_PREFERENCES = {
     social: true,
+    new_posts: false,
     announcements: true,
     security: true
 };
@@ -22,7 +23,7 @@ function createEmailNotificationRouter({ supabase }) {
         try {
             const { data, error } = await supabase
                 .from("email_notification_preferences")
-                .select("social, announcements, security")
+                .select("social, new_posts, announcements, security")
                 .eq("user_id", req.session.user.id)
                 .maybeSingle();
 
@@ -43,6 +44,7 @@ function createEmailNotificationRouter({ supabase }) {
             const body = req.body || {};
             const preferences = {
                 social: body.social === true,
+                new_posts: body.new_posts === true,
                 announcements: body.announcements === true,
                 // Security and account notices cannot be disabled.
                 security: true
@@ -55,7 +57,7 @@ function createEmailNotificationRouter({ supabase }) {
                     ...preferences,
                     updated_at: new Date().toISOString()
                 }, { onConflict: "user_id" })
-                .select("social, announcements, security")
+                .select("social, new_posts, announcements, security")
                 .single();
 
             if (error) throw error;
