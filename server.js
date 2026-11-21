@@ -91,11 +91,38 @@ if (!SESSION_SECRET) {
 
 
 
-const supabase =
-    createClient(
-        SUPABASE_URL,
-        SUPABASE_SERVICE_ROLE_KEY
-    );
+// Privileged server client. Never use this client to sign users in: doing so
+// replaces its service-role JWT with a user's JWT and breaks server-only access.
+const supabase = createClient(
+    SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY,
+    {
+        auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+            detectSessionInUrl: false
+        }
+    }
+);
+
+// User authentication gets its own client so a login can never mutate the
+// privileged service-role client's authorization header.
+const SUPABASE_AUTH_KEY =
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_PUBLISHABLE_KEY ||
+    SUPABASE_SERVICE_ROLE_KEY;
+
+const supabaseAuth = createClient(
+    SUPABASE_URL,
+    SUPABASE_AUTH_KEY,
+    {
+        auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+            detectSessionInUrl: false
+        }
+    }
+);
 
 
 
@@ -1621,7 +1648,7 @@ app.post("/api/login", async (req, res) => {
             data: authData,
             error: authError
         } =
-            await supabase.auth.signInWithPassword({
+            await supabaseAuth.auth.signInWithPassword({
 
                 email,
                 password
