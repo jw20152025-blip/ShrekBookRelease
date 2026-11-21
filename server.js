@@ -577,6 +577,15 @@ app.use(sessionMiddleware);
 
  app.use("/api/email", createEmailNotificationRouter({ supabase }));
 
+ function escapeEmailHtml(value) {
+     return String(value ?? "")
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#39;");
+ }
+
  // Persistent queue: delivery continues after app restarts because jobs live in Supabase.
  setInterval(() => {
      sendQueuedEmails(supabase).catch(error => {
@@ -2208,6 +2217,37 @@ app.post("/api/admin/global-message", async (req, res) => {
 
         };
 
+
+        // Email the announcement to accounts that have not opted out.
+        // Missing preference rows retain the existing default: announcements enabled.
+        void (async () => {
+            const [{ data: profiles, error: profilesError }, { data: preferences, error: prefsError }] =
+                await Promise.all([
+                    supabase.from("profiles").select("id").limit(5000),
+                    supabase.from("email_notification_preferences").select("user_id, announcements").limit(5000)
+                ]);
+
+            if (profilesError) throw profilesError;
+            if (prefsError) throw prefsError;
+
+            const disabled = new Set(
+                (preferences || []).filter(item => item.announcements === false).map(item => item.user_id)
+            );
+
+            for (const recipient of profiles || []) {
+                if (disabled.has(recipient.id)) continue;
+
+                await enqueueEmail(supabase, {
+                    userId: recipient.id,
+                    type: "announcements",
+                    subject: "ShrekBook announcement",
+                    text: message.trim() + "\\n\\nRead more: https://shrekbook.bbroot.com",
+                    html: "<h2>ShrekBook announcement</h2><p>" +
+                        escapeEmailHtml(message.trim()) +
+                        '</p><p><a href="https://shrekbook.bbroot.com">Open ShrekBook</a></p>'
+                });
+            }
+        })().catch(error => console.error("ANNOUNCEMENT EMAIL ERROR:", error));
 
         res.json({
             success: true
@@ -4581,9 +4621,41 @@ app.post(
             }
 
 
+            // New-post emails are opt-in only to avoid mailing every account.
+            void (async () => {
+                const [{ data: recipients, error: recipientError }, { data: author }] =
+                    await Promise.all([
+                        supabase.from("email_notification_preferences")
+                            .select("user_id")
+                            .eq("social", true)
+                            .eq("new_posts", true)
+                            .neq("user_id", userId)
+                            .limit(5000),
+                        supabase.from("profiles")
+                            .select("username, display_name")
+                            .eq("id", userId)
+                            .maybeSingle()
+                    ]);
 
+                if (recipientError) throw recipientError;
 
+                const authorName = author?.display_name || author?.username || "Someone";
+                const preview = content ? content.slice(0, 1200) : "Shared an image or video.";
+                const mediaLine = imageUrl ? "\\nMedia: " + imageUrl : "";
 
+                for (const recipient of recipients || []) {
+                    await enqueueEmail(supabase, {
+                        userId: recipient.user_id,
+                        type: "social",
+                        subject: authorName + " published a new post on ShrekBook",
+                        text: authorName + " just published a new post on ShrekBook:\\n\\n" + preview + mediaLine + "\\n\\nView ShrekBook: https://shrekbook.bbroot.com",
+                        html: "<h2>" + escapeEmailHtml(authorName) + " published a new post</h2><p>" +
+                            escapeEmailHtml(preview) + "</p>" +
+                            (imageUrl ? '<p><a href="' + escapeEmailHtml(imageUrl) + '">View attached media</a></p>' : "") +
+                            '<p><a href="https://shrekbook.bbroot.com">Open ShrekBook</a></p>'
+                    });
+                }
+            })().catch(error => console.error("NEW POST EMAIL ERROR:", error));
 
             const todayUTC =
                 new Date()
@@ -5562,9 +5634,34 @@ app.post(
             }
 
 
+            // Notify the owner of the post, but never email someone about their own comment.
+            void (async () => {
+                const { data: post } = await supabase
+                    .from("posts")
+                    .select("id, user_id")
+                    .eq("id", postId)
+                    .maybeSingle();
 
+                if (!post?.user_id || post.user_id === userId) return;
 
+                const { data: commenter } = await supabase
+                    .from("profiles")
+                    .select("username, display_name")
+                    .eq("id", userId)
+                    .maybeSingle();
 
+                const commenterName = commenter?.display_name || commenter?.username || "Someone";
+                const preview = content || (imageUrl ? "Attached media" : "New comment");
+                await enqueueEmail(supabase, {
+                    userId: post.user_id,
+                    type: "social",
+                    subject: commenterName + " commented on your ShrekBook post",
+                    text: commenterName + " commented on your post:\\n\\n" + preview.slice(0, 1000) + "\\n\\nView the discussion: https://shrekbook.bbroot.com",
+                    html: "<h2>New comment on your post</h2><p><strong>" + escapeEmailHtml(commenterName) +
+                        "</strong> commented:</p><blockquote>" + escapeEmailHtml(preview.slice(0, 1000)) +
+                        '</blockquote><p><a href="https://shrekbook.bbroot.com">Open ShrekBook</a></p>'
+                });
+            })().catch(error => console.error("POST COMMENT EMAIL ERROR:", error));
 
             const todayUTC =
                 new Date()
@@ -8147,6 +8244,28 @@ async function addReaction(
 
 
 
+
+
+        // Notify the recipient after the reaction has been successfully recorded.
+        void (async () => {
+            const { data: sender } = await supabase
+                .from("profiles")
+                .select("username, display_name")
+                .eq("id", fromUserId)
+                .maybeSingle();
+
+            const senderName = sender?.display_name || sender?.username || "Someone";
+            const reactionName = type === "gyatt" ? "Gyatt" : type === "cat" ? "Cat" : "Ogre";
+            await enqueueEmail(supabase, {
+                userId: toUserId,
+                type: "social",
+                subject: senderName + " gave you a " + reactionName,
+                text: senderName + " gave you a " + reactionName + " on ShrekBook.\\n\\nVisit https://shrekbook.bbroot.com to see your profile.",
+                html: "<h2>You received a " + reactionName + "!</h2><p><strong>" + escapeEmailHtml(senderName) +
+                    "</strong> gave you a " + reactionName + " on ShrekBook.</p>" +
+                    '<p><a href="https://shrekbook.bbroot.com">View your profile</a></p>'
+            });
+        })().catch(error => console.error("REACTION EMAIL ERROR:", error));
 
         const {
             error: coinError
