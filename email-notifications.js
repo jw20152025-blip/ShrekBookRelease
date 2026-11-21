@@ -77,9 +77,10 @@ function createEmailNotificationRouter({ supabase }) {
             html: `<h1>ShrekBook email test</h1><p>Hi ${escapeHtml(username)}! Your email notification delivery is connected.</p>`
         });
 
-        if (!queued) {
+        if (!queued.success) {
+            console.error("EMAIL TEST QUEUE ERROR:", queued.error);
             return res.status(500).json({
-                error: "Could not add the test email to the queue. Confirm the email notification database migration has been run."
+                error: "Supabase rejected the test email: " + queued.error
             });
         }
 
@@ -99,7 +100,9 @@ function escapeHtml(value) {
 }
 
 async function enqueueEmail(supabase, { userId, type, subject, text, html }) {
-    if (!userId || !type || !subject || !text) return false;
+    if (!userId || !type || !subject || !text) {
+        return { success: false, error: "Missing required email fields." };
+    }
 
     const { error } = await supabase
         .from("email_notification_queue")
@@ -114,9 +117,9 @@ async function enqueueEmail(supabase, { userId, type, subject, text, html }) {
 
     if (error) {
         console.error("EMAIL QUEUE INSERT ERROR:", error);
-        return false;
+        return { success: false, error: error.message || "Unknown database error." };
     }
-    return true;
+    return { success: true };
 }
 
 async function sendQueuedEmails(supabase) {
