@@ -23,6 +23,7 @@ create table if not exists public.email_notification_queue (
     scheduled_at timestamptz not null default now(),
     created_at timestamptz not null default now(),
     sent_at timestamptz,
+    locked_at timestamptz,
     provider_message_id text,
     last_error text
 );
@@ -38,4 +39,15 @@ alter table public.email_notification_preferences enable row level security;
 alter table public.email_notification_queue enable row level security;
 
 -- No client policies are created. The application server accesses these tables
--- through SUPABASE_SERVICE_ROLE_KEY; browser clients cannot read queued email content.
+-- through its isolated SUPABASE_SERVICE_ROLE_KEY client only.
+alter table public.email_notification_preferences enable row level security;
+alter table public.email_notification_queue enable row level security;
+
+revoke all privileges on table public.email_notification_queue from public, anon, authenticated;
+revoke all privileges on table public.email_notification_preferences from public, anon, authenticated;
+
+grant select, insert, update, delete on table public.email_notification_queue to service_role;
+grant select, insert, update, delete on table public.email_notification_preferences to service_role;
+
+revoke all privileges on sequence public.email_notification_queue_id_seq from public, anon, authenticated;
+grant usage, select on sequence public.email_notification_queue_id_seq to service_role;
