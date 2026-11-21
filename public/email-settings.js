@@ -42,3 +42,25 @@ document.getElementById("save").addEventListener("click", async () => {
 });
 
 loadPreferences();
+
+
+document.getElementById("send-test").addEventListener("click", async () => {
+    const status = document.getElementById("status");
+    const button = document.getElementById("send-test");
+    button.disabled = true;
+    status.textContent = "Queueing test email…";
+    try {
+        const response = await fetch("/api/email/test", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" }
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Could not queue test email.");
+        status.textContent = "✓ " + (data.message || "Test email queued.");
+    } catch (error) {
+        status.textContent = "Could not send test: " + error.message;
+    } finally {
+        button.disabled = false;
+    }
+});
