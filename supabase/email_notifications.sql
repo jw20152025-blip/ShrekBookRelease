@@ -5,6 +5,7 @@
 create table if not exists public.email_notification_preferences (
     user_id uuid primary key references auth.users(id) on delete cascade,
     social boolean not null default true,
+    new_posts boolean not null default false,
     announcements boolean not null default true,
     security boolean not null default true,
     updated_at timestamptz not null default now()
