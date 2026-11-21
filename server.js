@@ -8255,7 +8255,7 @@ async function addReaction(
                 .maybeSingle();
 
             const senderName = sender?.display_name || sender?.username || "Someone";
-            const reactionName = type === "gyatt" ? "Gyatt" : type === "cat" ? "Cat" : "Ogre";
+            const reactionName = type === "gyatt" ? "Gyatt" : type === "cat" ? "Cat" : "Ogred";
             await enqueueEmail(supabase, {
                 userId: toUserId,
                 type: "social",
