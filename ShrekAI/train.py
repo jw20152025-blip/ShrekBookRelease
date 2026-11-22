@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import platform
 from pathlib import Path
 
 import torch
@@ -40,7 +39,6 @@ def load_base():
     if (
         CONFIG.get("use_4bit_if_available", True)
         and torch.cuda.is_available()
-        and platform.system() != "Windows"
     ):
         try:
             from transformers import BitsAndBytesConfig
@@ -72,7 +70,7 @@ def load_base():
         if torch.cuda.is_available():
             dtype = torch.float16
             device_map = "auto"
-            print("[ShrekAI] Using CUDA FP16. If VRAM is insufficient, rerun with CUDA disabled.")
+            print("[ShrekAI] Using CUDA FP16. The 2 GB MX570 is tight; micro-batch 1 and checkpointing are enabled.")
         else:
             dtype = torch.float32
             device_map = None
