@@ -173,6 +173,20 @@ def main():
         desc="Tokenizing with the fixed Qwen tokenizer",
     )
     tokenized = tokenized.filter(lambda row: len(row["input_ids"]) >= 16)
+    # Keep the complete imported corpus on disk, but use a sizeable fast-training
+    # slice by default so the 2 GB MX570 is not forced through every record.
+    train_limit = int(CONFIG.get("max_train_records", 250000))
+    valid_limit = int(CONFIG.get("max_validation_records", 8000))
+    tokenized["train"] = tokenized["train"].shuffle(seed=int(CONFIG["seed"])).select(
+        range(min(train_limit, len(tokenized["train"])))
+    )
+    tokenized["validation"] = tokenized["validation"].select(
+        range(min(valid_limit, len(tokenized["validation"])))
+    )
+    print(
+        f"[ShrekAI] Fast training slice: {len(tokenized['train']):,} train / "
+        f"{len(tokenized['validation']):,} validation records."
+    )
 
     args = TrainingArguments(
         output_dir=str(OUTPUT_DIR),
