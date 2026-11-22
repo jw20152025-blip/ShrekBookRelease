@@ -57,7 +57,7 @@ The tokenizer and base model are pinned to the same model identifier and revisio
 
 - Checkpoints are LoRA adapter weights plus a metadata file.
 - A changed or expanded dataset only requires rerunning the importer/trainer; it does not require translating token IDs.
-- The metadata records the base model, tokenizer, sequence length, LoRA configuration and dataset fingerprint.
+- The metadata records the resolved base-model commit, tokenizer, sequence length, LoRA configuration and dataset SHA-256 fingerprint. Chat and merge use that same recorded base revision.
 - An adapter is portable to another machine only when that machine uses the same base-model architecture/revision and tokenizer.
 - Changing to a different base model or tokenizer is not a safe weight conversion; it requires a new adapter or a deliberate migration.
 
