@@ -1,0 +1,23 @@
+{
+  "base_model": "Qwen/Qwen3-0.6B",
+  "base_revision": "main",
+  "trust_remote_code": false,
+  "max_seq_length": 256,
+  "micro_batch_size": 1,
+  "gradient_accumulation_steps": 16,
+  "learning_rate": 0.00008,
+  "epochs": 1,
+  "warmup_ratio": 0.03,
+  "weight_decay": 0.01,
+  "logging_steps": 10,
+  "save_steps": 250,
+  "eval_steps": 250,
+  "lora_r": 8,
+  "lora_alpha": 16,
+  "lora_dropout": 0.05,
+  "seed": 42,
+  "dataset_dir": "data",
+  "output_dir": "outputs",
+  "model_dir": "models/base",
+  "use_4bit_if_available": true
+}
