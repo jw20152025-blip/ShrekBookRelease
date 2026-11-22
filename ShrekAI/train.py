@@ -96,7 +96,7 @@ def load_base():
             print("[ShrekAI] Using CPU FP32. This avoids out-of-memory errors but is slower.")
         model = AutoModelForCausalLM.from_pretrained(
             BASE_MODEL,
-            revision=CONFIG["base_revision"],
+            revision=requested_revision,
             torch_dtype=dtype,
             low_cpu_mem_usage=True,
             device_map=device_map,
