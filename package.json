@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node --check server.js && node --check email-notifications.js && node --check public/email-settings.js && node --check public/houses.js"
+    "test": "node --check server.js && node --check email-notifications.js && node --check shrekbook-mcp.js && node --check post-notifications.js && node --check public/email-settings.js && node --check public/houses.js"
   },
   "dependencies": {
     "@huggingface/inference": "^4.13.28",
