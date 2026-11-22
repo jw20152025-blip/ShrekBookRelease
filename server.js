@@ -607,6 +607,57 @@ app.use(sessionMiddleware);
      });
  }, 15000);
 
+// ==================================================
+// PROTECT THE ADMIN PANEL ITSELF
+// Only Junior Moderators and above may receive the
+// admin HTML or its JavaScript from the server.
+// ==================================================
+
+async function requireAdminPanel(req, res, next) {
+    try {
+        if (!req.session?.user?.id) {
+            return res.status(401).send("You must be logged in to view the ShrekBook Admin Panel.");
+        }
+
+        const { data: profile, error } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", req.session.user.id)
+            .maybeSingle();
+
+        if (error) {
+            console.error("ADMIN PANEL ACCESS CHECK ERROR:", error);
+            return res.status(500).send("Unable to verify admin panel permissions.");
+        }
+
+        const allowedRoles = [
+            "junior_moderator",
+            "senior_moderator",
+            "administrator",
+            "owner"
+        ];
+
+        if (!profile || !allowedRoles.includes(profile.role)) {
+            return res.status(403).send("Access denied. Junior Moderator or higher is required.");
+        }
+
+        return next();
+    } catch (error) {
+        console.error("ADMIN PANEL ACCESS ERROR:", error);
+        return res.status(500).send("Unable to verify admin panel permissions.");
+    }
+}
+
+// Serve the panel and its controller only after server-side role verification.
+// This prevents unauthorized visitors from receiving the admin page at all.
+app.get("/admin.html", requireAdminPanel, (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
+
+app.get("/admin.js", requireAdminPanel, (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "admin.js"));
+});
+
 app.use(express.static(
     path.join(__dirname, "public")
 ));
