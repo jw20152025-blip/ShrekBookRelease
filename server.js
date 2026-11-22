@@ -575,6 +575,9 @@ app.use(sessionMiddleware);
      sendQueuedEmails
  } = require("./email-notifications");
 
+ const { notifyNewPostEmails } = require("./post-notifications");
+ const { attachShrekBookMcp } = require("./shrekbook-mcp");
+
  app.use("/api/email", createEmailNotificationRouter({ supabase }));
 
  function escapeEmailHtml(value) {
@@ -585,6 +588,17 @@ app.use(sessionMiddleware);
          .replace(/"/g, "&quot;")
          .replace(/'/g, "&#39;");
  }
+
+ // Authenticated Model Context Protocol endpoint for external assistants.
+ attachShrekBookMcp({
+     app,
+     supabase,
+     notifyNewPostEmails: (args) => notifyNewPostEmails({
+         ...args,
+         enqueueEmail,
+         escapeEmailHtml
+     })
+ });
 
  // Persistent queue: delivery continues after app restarts because jobs live in Supabase.
  setInterval(() => {
@@ -4622,40 +4636,14 @@ app.post(
 
 
             // New-post emails are opt-in only to avoid mailing every account.
-            void (async () => {
-                const [{ data: recipients, error: recipientError }, { data: author }] =
-                    await Promise.all([
-                        supabase.from("email_notification_preferences")
-                            .select("user_id")
-                            .eq("social", true)
-                            .eq("new_posts", true)
-                            .neq("user_id", userId)
-                            .limit(5000),
-                        supabase.from("profiles")
-                            .select("username, display_name")
-                            .eq("id", userId)
-                            .maybeSingle()
-                    ]);
-
-                if (recipientError) throw recipientError;
-
-                const authorName = author?.display_name || author?.username || "Someone";
-                const preview = content ? content.slice(0, 1200) : "Shared an image or video.";
-                const mediaLine = imageUrl ? "\\nMedia: " + imageUrl : "";
-
-                for (const recipient of recipients || []) {
-                    await enqueueEmail(supabase, {
-                        userId: recipient.user_id,
-                        type: "social",
-                        subject: authorName + " published a new post on ShrekBook",
-                        text: authorName + " just published a new post on ShrekBook:\\n\\n" + preview + mediaLine + "\\n\\nView ShrekBook: https://shrekbook.bbroot.com",
-                        html: "<h2>" + escapeEmailHtml(authorName) + " published a new post</h2><p>" +
-                            escapeEmailHtml(preview) + "</p>" +
-                            (imageUrl ? '<p><a href="' + escapeEmailHtml(imageUrl) + '">View attached media</a></p>' : "") +
-                            '<p><a href="https://shrekbook.bbroot.com">Open ShrekBook</a></p>'
-                    });
-                }
-            })().catch(error => console.error("NEW POST EMAIL ERROR:", error));
+            void notifyNewPostEmails({
+                supabase,
+                enqueueEmail,
+                escapeEmailHtml,
+                userId,
+                content,
+                imageUrl
+            }).catch(error => console.error("NEW POST EMAIL ERROR:", error));
 
             const todayUTC =
                 new Date()
