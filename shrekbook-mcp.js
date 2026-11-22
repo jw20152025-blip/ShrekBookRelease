@@ -2,6 +2,7 @@ const crypto = require("crypto");
 
 const MCP_PATH = "/mcp";
 const SUPPORTED_PROTOCOL_VERSIONS = new Set([
+    "2026-07-28",
     "2025-11-25",
     "2025-06-18",
     "2025-03-26",
