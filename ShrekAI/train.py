@@ -241,17 +241,25 @@ def main():
     )
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    manifest_path = DATA_DIR / "manifest.json"
+    dataset_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    resolved_revision = (
+        getattr(model.config, "_commit_hash", None)
+        or tokenizer.init_kwargs.get("_commit_hash")
+        or CONFIG["base_revision"]
+    )
     metadata = {
         "base_model": BASE_MODEL,
-        "base_revision": CONFIG["base_revision"],
+        "base_revision": resolved_revision,
         "tokenizer": BASE_MODEL,
+        "dataset_sha256": dataset_manifest.get("dataset_sha256"),
         "max_seq_length": MAX_LENGTH,
         "lora": {
             "r": CONFIG["lora_r"],
             "alpha": CONFIG["lora_alpha"],
             "dropout": CONFIG["lora_dropout"],
         },
-        "dataset_manifest": str(DATA_DIR / "manifest.json"),
+        "dataset_manifest": str(manifest_path),
         "note": "Adapter requires the exact same base model revision and tokenizer.",
     }
     (OUTPUT_DIR / "shrekai_adapter_metadata.json").write_text(
