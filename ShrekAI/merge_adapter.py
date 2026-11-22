@@ -24,7 +24,7 @@ def main():
     print("[ShrekAI] Loading base model for merge...")
     base = AutoModelForCausalLM.from_pretrained(
         CONFIG["base_model"],
-        revision=CONFIG["base_revision"],
+        revision=metadata.get("base_revision", CONFIG["base_revision"]),
         torch_dtype=torch.float32,
         low_cpu_mem_usage=True,
     )
