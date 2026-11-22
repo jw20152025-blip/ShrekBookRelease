@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Service Announcements — ShrekBook</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/themes.css">
+<script>
+(function(){try{const t=localStorage.getItem("shrekbook-theme");if(t&&t!=="default")document.documentElement.setAttribute("data-theme",t);}catch(e){}})();
+</script>
+<style>
+.sa-wrap{max-width:1000px;margin:35px auto;padding:20px}
+.sa-hero,.sa-composer,.sa-card{background:var(--card-bg, #fff);color:var(--text-color, #222);border:1px solid var(--border-color, #ddd);border-radius:16px;padding:22px;margin-bottom:18px;box-shadow:0 3px 14px rgba(0,0,0,.06)}
+.sa-hero h1{margin:0 0 8px}.sa-muted{opacity:.72}.sa-composer{display:none}
+.sa-composer input,.sa-composer textarea{display:block;width:100%;box-sizing:border-box;margin:12px 0;padding:12px;border:1px solid #aaa;border-radius:9px;font:inherit;background:var(--input-bg, #fff);color:inherit}
+.sa-composer textarea{min-height:150px;resize:vertical}
+.sa-button{border:0;border-radius:9px;padding:11px 17px;font-weight:700;cursor:pointer;background:#387b3c;color:white}
+.sa-button:hover{filter:brightness(.93)}.sa-delete{background:#9b3030;color:white;border:0;border-radius:8px;padding:8px 12px;cursor:pointer}
+.sa-meta{font-size:.9rem;opacity:.72;margin:8px 0 14px}.sa-content{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}
+.sa-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.sa-empty{text-align:center;padding:35px;opacity:.7}
+.sa-status{min-height:1.4em;margin:10px 0}.sa-tag{display:inline-block;border-radius:99px;padding:4px 9px;background:rgba(55,125,60,.13);font-size:.78rem;font-weight:700}
+@media(max-width:650px){.sa-wrap{padding:12px}.sa-top{display:block}.sa-delete{margin-top:10px}}
+</style>
+</head>
+<body>
+<header class="navbar">
+ <div class="navbar-inner">
+  <a href="/" class="logo">🧌 ShrekBook</a>
+  <nav>
+   <a href="/">Home</a>
+   <a href="/service-announcements.html">📢 Service Announcements</a>
+   <a href="/profile.html">Profile</a>
+   <a href="/shrekchat.html">💬 ShrekChat</a>
+   <a href="/houses.html">🏠 Houses</a>
+   <a href="/admin.html" id="admin-link" style="display:none">🛡️ Admin</a>
+  </nav>
+ </div>
+</header>
+<main class="sa-wrap">
+ <section class="sa-hero">
+  <h1>📢 ShrekBook Service Announcements</h1>
+  <p class="sa-muted">Official updates about maintenance, outages, new features, and changes to ShrekBook.</p>
+  <span class="sa-tag">Official staff updates</span>
+ </section>
+ <section class="sa-composer" id="composer">
+  <h2>Publish an announcement</h2>
+  <p class="sa-muted">Posting is restricted to Senior Moderators, Administrators, and the Owner.</p>
+  <input id="announcement-title" maxlength="160" placeholder="Announcement title">
+  <textarea id="announcement-content" maxlength="10000" placeholder="Write the service announcement..."></textarea>
+  <button class="sa-button" id="publish-button" type="button">Publish announcement</button>
+  <p class="sa-status" id="composer-status" aria-live="polite"></p>
+ </section>
+ <section>
+  <div class="sa-top"><h2>Latest announcements</h2><button class="sa-button" id="refresh-button" type="button">Refresh</button></div>
+  <p class="sa-status" id="load-status" aria-live="polite">Loading announcements…</p>
+  <div id="announcement-list"></div>
+ </section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const seniorRoles=["senior_moderator","administrator","owner"];
+let canManage=false;
+async function request(url,options={}){
+ const response=await fetch(url,{credentials:"include",cache:"no-store",...options,headers:{"Content-Type":"application/json",...(options.headers||{})}});
+ let data={};try{data=await response.json()}catch(e){}
+ if(!response.ok)throw new Error(data.error||("Request failed ("+response.status+")"));
+ return data;
+}
+function make(tag,className,text){const el=document.createElement(tag);if(className)el.className=className;if(text!==undefined)el.textContent=text;return el;}
+async function checkPermissions(){
+ try{
+  const data=await request("/api/admin/auth");
+  canManage=seniorRoles.includes(data.user?.role);
+  if(data.user?.role==="owner"||data.user?.role==="administrator"||data.user?.role==="senior_moderator"||data.user?.role==="junior_moderator")$("admin-link").style.display="";
+ }catch(e){canManage=false;}
+ $("composer").style.display=canManage?"block":"none";
+}
+async function loadAnnouncements(){
+ $("load-status").textContent="Loading announcements…";
+ const list=$("announcement-list");list.replaceChildren();
+ try{
+  const data=await request("/api/service-announcements");
+  const items=data.announcements||[];
+  $("load-status").textContent=items.length?items.length+" announcement"+(items.length===1?"":"s"):"";
+  if(!items.length){list.append(make("div","sa-card sa-empty","There are no service announcements yet."));return;}
+  for(const item of items){
+   const card=make("article","sa-card");
+   const top=make("div","sa-top");
+   const heading=make("h3","",item.title);
+   top.append(heading);
+   if(canManage){
+    const del=make("button","sa-delete","Delete");
+    del.type="button";del.addEventListener("click",()=>deleteAnnouncement(item.id,item.title,del));top.append(del);
+   }
+   card.append(top);
+   const author=item.author||{};
+   const date=item.created_at?new Date(item.created_at).toLocaleString():"Date unavailable";
+   card.append(make("p","sa-meta","Posted by "+(author.display_name||author.username||"ShrekBook Staff")+" · "+date+" · "+String(author.role||"staff").replaceAll("_"," ")));
+   card.append(make("div","sa-content",item.content));
+   list.append(card);
+  }
+ }catch(error){$("load-status").textContent=error.message;}
+}
+async function publishAnnouncement(){
+ const title=$("announcement-title").value.trim(),content=$("announcement-content").value.trim();
+ const status=$("composer-status");
+ if(!title||!content){status.textContent="Please enter both a title and announcement.";return;}
+ const button=$("publish-button");button.disabled=true;status.textContent="Publishing…";
+ try{
+  await request("/api/service-announcements",{method:"POST",body:JSON.stringify({title,content})});
+  $("announcement-title").value="";$("announcement-content").value="";
+  status.textContent="Announcement published.";
+  await loadAnnouncements();
+ }catch(error){status.textContent=error.message;}
+ finally{button.disabled=false;}
+}
+async function deleteAnnouncement(id,title,button){
+ if(!confirm('Delete "'+title+'"?'))return;
+ button.disabled=true;
+ try{await request("/api/service-announcements/"+encodeURIComponent(id),{method:"DELETE"});await loadAnnouncements();}
+ catch(error){alert(error.message);button.disabled=false;}
+}
+$("publish-button").addEventListener("click",publishAnnouncement);
+$("refresh-button").addEventListener("click",loadAnnouncements);
+(async()=>{await checkPermissions();await loadAnnouncements();})();
+</script>
+</body>
+</html>
