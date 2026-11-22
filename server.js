@@ -1759,26 +1759,36 @@ app.post("/api/service-announcements", requireLogin, async (req, res) => {
         // to enabled, matching the existing notification system.
         let queuedEmailCount = 0;
         try {
-            const [{ data: profiles, error: profilesError }, { data: preferences, error: preferencesError }] = await Promise.all([
-                supabase
-                    .from("profiles")
-                    .select("id")
-                    .limit(5000),
-                supabase
-                    .from("email_notification_preferences")
-                    .select("user_id, announcements")
-                    .limit(5000)
+            async function fetchAllAnnouncementRows(table, columns) {
+                const rows = [];
+                const pageSize = 1000;
+
+                for (let offset = 0; ; offset += pageSize) {
+                    const { data, error } = await supabase
+                        .from(table)
+                        .select(columns)
+                        .range(offset, offset + pageSize - 1);
+
+                    if (error) throw error;
+                    rows.push(...(data || []));
+                    if (!data || data.length < pageSize) break;
+                }
+
+                return rows;
+            }
+
+            const [profiles, preferences] = await Promise.all([
+                fetchAllAnnouncementRows("profiles", "id"),
+                fetchAllAnnouncementRows("email_notification_preferences", "user_id, announcements")
             ]);
 
-            if (profilesError) throw profilesError;
-            if (preferencesError) throw preferencesError;
-
             const preferenceByUser = new Map(
-                (preferences || []).map(item => [item.user_id, item.announcements])
+                preferences.map(item => [item.user_id, item.announcements])
             );
 
-            const recipients = (profiles || []).filter(profile =>
-                profile.id !== author.id &&
+            // Include the publishing moderator too, so they can receive and
+            // verify their own announcement email if they have opted in.
+            const recipients = profiles.filter(profile =>
                 preferenceByUser.get(profile.id) !== false
             );
 
