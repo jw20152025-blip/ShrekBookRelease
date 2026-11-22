@@ -1754,9 +1754,79 @@ app.post("/api/service-announcements", requireLogin, async (req, res) => {
 
         if (error) throw error;
 
+        // Queue a service-announcement email for every user who has
+        // announcement emails enabled. Missing preference rows default
+        // to enabled, matching the existing notification system.
+        let queuedEmailCount = 0;
+        try {
+            const [{ data: profiles, error: profilesError }, { data: preferences, error: preferencesError }] = await Promise.all([
+                supabase
+                    .from("profiles")
+                    .select("id")
+                    .limit(5000),
+                supabase
+                    .from("email_notification_preferences")
+                    .select("user_id, announcements")
+                    .limit(5000)
+            ]);
+
+            if (profilesError) throw profilesError;
+            if (preferencesError) throw preferencesError;
+
+            const preferenceByUser = new Map(
+                (preferences || []).map(item => [item.user_id, item.announcements])
+            );
+
+            const recipients = (profiles || []).filter(profile =>
+                profile.id !== author.id &&
+                preferenceByUser.get(profile.id) !== false
+            );
+
+            const announcementUrl = "https://shrekbook.bbroot.com/service-announcements.html";
+            const emailSubject = `ShrekBook Service Announcement: ${title}`;
+            const emailText = [
+                "A new official ShrekBook service announcement has been published.",
+                "",
+                title,
+                "",
+                content,
+                "",
+                `Read the announcement: ${announcementUrl}`,
+                "",
+                "You can manage announcement email preferences in your ShrekBook account."
+            ].join("\\n");
+            const emailHtml = `
+                <div style="font-family:Arial,sans-serif;line-height:1.6;color:#222">
+                    <h2>ShrekBook Service Announcement</h2>
+                    <h3>${escapeEmailHtml(title)}</h3>
+                    <p>${escapeEmailHtml(content).replace(/\\n/g, "<br>")}</p>
+                    <p><a href="${announcementUrl}">Read the announcement on ShrekBook</a></p>
+                    <p style="color:#777;font-size:12px">You can manage announcement email preferences in your ShrekBook account.</p>
+                </div>
+            `;
+
+            // Queue in small batches to avoid overwhelming Supabase.
+            for (let i = 0; i < recipients.length; i += 50) {
+                const batch = recipients.slice(i, i + 50);
+                const results = await Promise.all(batch.map(profile =>
+                    enqueueEmail(supabase, {
+                        userId: profile.id,
+                        type: "announcements",
+                        subject: emailSubject,
+                        text: emailText,
+                        html: emailHtml
+                    })
+                ));
+                queuedEmailCount += results.filter(Boolean).length;
+            }
+        } catch (emailError) {
+            console.error("SERVICE ANNOUNCEMENT EMAIL QUEUE ERROR:", emailError);
+        }
+
         return res.status(201).json({
             success: true,
-            announcement: { ...data, author }
+            announcement: { ...data, author },
+            emailsQueued: queuedEmailCount
         });
     } catch (error) {
         console.error("SERVICE ANNOUNCEMENT CREATE ERROR:", error);
