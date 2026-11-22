@@ -19,5 +19,7 @@
   "dataset_dir": "data",
   "output_dir": "outputs",
   "model_dir": "models/base",
-  "use_4bit_if_available": true
+  "use_4bit_if_available": true,
+  "max_train_records": 250000,
+  "max_validation_records": 8000
 }
