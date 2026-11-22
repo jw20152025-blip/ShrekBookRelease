@@ -17,12 +17,15 @@ def main():
     if not ADAPTER.exists():
         raise SystemExit("No trained adapter found. Run train.bat first.")
     print("[ShrekAI] Loading base model and trained adapter...")
+    metadata = json.loads(
+        (ADAPTER / "shrekai_adapter_metadata.json").read_text(encoding="utf-8")
+    )
     tokenizer = AutoTokenizer.from_pretrained(ADAPTER)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     dtype = torch.float16 if device == "cuda" else torch.float32
     base = AutoModelForCausalLM.from_pretrained(
         BASE,
-        revision=CONFIG["base_revision"],
+        revision=metadata.get("base_revision", CONFIG["base_revision"]),
         torch_dtype=dtype,
         low_cpu_mem_usage=True,
     ).to(device)
