@@ -1655,6 +1655,138 @@ function requireLogin(req, res, next) {
     next();
 }
 
+// ==================================================
+// SHREKBOOK SERVICE ANNOUNCEMENTS
+// Anyone can read announcements; only Senior Moderators,
+// Administrators, and Owners can publish or remove them.
+// ==================================================
+
+const SERVICE_ANNOUNCEMENT_ROLES = [
+    "senior_moderator",
+    "administrator",
+    "owner"
+];
+
+async function getServiceAnnouncementStaff(userId) {
+    if (!userId) return null;
+
+    const { data, error } = await supabase
+        .from("profiles")
+        .select("id, username, display_name, role")
+        .eq("id", userId)
+        .maybeSingle();
+
+    if (error) throw error;
+    if (!data || !SERVICE_ANNOUNCEMENT_ROLES.includes(data.role)) return null;
+    return data;
+}
+
+app.get("/api/service-announcements", async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from("service_announcements")
+            .select("id, title, content, author_id, created_at, updated_at")
+            .order("created_at", { ascending: false })
+            .limit(100);
+
+        if (error) throw error;
+
+        const authorIds = [...new Set((data || []).map(item => item.author_id))];
+        let authors = [];
+
+        if (authorIds.length) {
+            const { data: profiles, error: profilesError } = await supabase
+                .from("profiles")
+                .select("id, username, display_name, role")
+                .in("id", authorIds);
+
+            if (profilesError) throw profilesError;
+            authors = profiles || [];
+        }
+
+        const authorMap = new Map(authors.map(author => [author.id, author]));
+
+        return res.json({
+            success: true,
+            announcements: (data || []).map(item => ({
+                ...item,
+                author: authorMap.get(item.author_id) || {
+                    username: "unknown",
+                    display_name: "Unknown staff member",
+                    role: "staff"
+                }
+            }))
+        });
+    } catch (error) {
+        console.error("SERVICE ANNOUNCEMENTS LOAD ERROR:", error);
+        return res.status(500).json({ error: "Could not load service announcements." });
+    }
+});
+
+app.post("/api/service-announcements", requireLogin, async (req, res) => {
+    try {
+        const author = await getServiceAnnouncementStaff(req.session.user.id);
+        if (!author) {
+            return res.status(403).json({
+                error: "Senior Moderator or higher is required to publish service announcements."
+            });
+        }
+
+        const title = String(req.body.title || "").trim();
+        const content = String(req.body.content || "").trim();
+
+        if (!title || title.length > 160) {
+            return res.status(400).json({ error: "Title must be between 1 and 160 characters." });
+        }
+        if (!content || content.length > 10000) {
+            return res.status(400).json({ error: "Announcement must be between 1 and 10,000 characters." });
+        }
+
+        const { data, error } = await supabase
+            .from("service_announcements")
+            .insert({
+                title,
+                content,
+                author_id: author.id
+            })
+            .select("id, title, content, author_id, created_at, updated_at")
+            .single();
+
+        if (error) throw error;
+
+        return res.status(201).json({
+            success: true,
+            announcement: { ...data, author }
+        });
+    } catch (error) {
+        console.error("SERVICE ANNOUNCEMENT CREATE ERROR:", error);
+        return res.status(500).json({ error: "Could not publish the service announcement." });
+    }
+});
+
+app.delete("/api/service-announcements/:id", requireLogin, async (req, res) => {
+    try {
+        const staff = await getServiceAnnouncementStaff(req.session.user.id);
+        if (!staff) {
+            return res.status(403).json({
+                error: "Senior Moderator or higher is required to manage service announcements."
+            });
+        }
+
+        const { error } = await supabase
+            .from("service_announcements")
+            .delete()
+            .eq("id", req.params.id);
+
+        if (error) throw error;
+        return res.json({ success: true });
+    } catch (error) {
+        console.error("SERVICE ANNOUNCEMENT DELETE ERROR:", error);
+        return res.status(500).json({ error: "Could not delete the service announcement." });
+    }
+});
+
+
 
 
 
