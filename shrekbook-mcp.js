@@ -22,7 +22,6 @@ function jsonRpcError(id, code, message) {
 function textResult(value, extra = {}) {
     return {
         content: [{ type: "text", text: JSON.stringify(value, null, 2) }],
-        structuredContent: value,
         ...extra
     };
 }
@@ -177,7 +176,6 @@ function attachShrekBookMcp({
                     capabilities: { tools: {} },
                     serverInfo: {
                         name: "shrekbook",
-                        title: "ShrekBook",
                         version: "1.0.0"
                     },
                     instructions: "Access the ShrekBook account configured as OWNER_ID. Use get_recent_posts to read the public feed. create_post publishes as the configured ShrekBook owner and queues new-post email notifications for opted-in users."
