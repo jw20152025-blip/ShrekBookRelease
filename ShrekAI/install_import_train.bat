@@ -17,6 +17,9 @@ if errorlevel 1 exit /b 1
 echo [3/5] Installing ShrekAI training dependencies...
 "%PY%" -m pip install -r requirements.txt
 if errorlevel 1 exit /b 1
+echo [3b/5] Trying optional 4-bit CUDA support (safe to skip if unsupported)...
+"%PY%" -m pip install bitsandbytes
+if errorlevel 1 echo Optional bitsandbytes unavailable; continuing with the standard backend.
 echo [4/5] Downloading the Qwen3 base model...
 "%PY%" -c "from transformers import AutoTokenizer,AutoModelForCausalLM; m='Qwen/Qwen3-0.6B'; AutoTokenizer.from_pretrained(m); AutoModelForCausalLM.from_pretrained(m,low_cpu_mem_usage=True); print('Base model downloaded.')"
 if errorlevel 1 exit /b 1
