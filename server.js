@@ -1794,12 +1794,12 @@ app.post("/api/service-announcements", requireLogin, async (req, res) => {
                 `Read the announcement: ${announcementUrl}`,
                 "",
                 "You can manage announcement email preferences in your ShrekBook account."
-            ].join("\\n");
+            ].join("\n");
             const emailHtml = `
                 <div style="font-family:Arial,sans-serif;line-height:1.6;color:#222">
                     <h2>ShrekBook Service Announcement</h2>
                     <h3>${escapeEmailHtml(title)}</h3>
-                    <p>${escapeEmailHtml(content).replace(/\\n/g, "<br>")}</p>
+                    <p>${escapeEmailHtml(content).replace(/\n/g, "<br>")}</p>
                     <p><a href="${announcementUrl}">Read the announcement on ShrekBook</a></p>
                     <p style="color:#777;font-size:12px">You can manage announcement email preferences in your ShrekBook account.</p>
                 </div>
