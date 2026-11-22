@@ -25,10 +25,16 @@ MAX_LENGTH = int(CONFIG["max_seq_length"])
 
 def load_base():
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
-    print(f"[ShrekAI] Loading {BASE_MODEL}...")
+    revision_file = MODEL_DIR / "resolved_revision.txt"
+    requested_revision = (
+        revision_file.read_text(encoding="utf-8").strip()
+        if revision_file.exists()
+        else CONFIG["base_revision"]
+    )
+    print(f"[ShrekAI] Loading {BASE_MODEL} at {requested_revision}...")
     tokenizer = AutoTokenizer.from_pretrained(
         BASE_MODEL,
-        revision=CONFIG["base_revision"],
+        revision=requested_revision,
         use_fast=True,
     )
     if tokenizer.pad_token is None:
@@ -70,7 +76,7 @@ def load_base():
     if use_4bit:
         model = AutoModelForCausalLM.from_pretrained(
             BASE_MODEL,
-            revision=CONFIG["base_revision"],
+            revision=requested_revision,
             quantization_config=quantization,
             device_map="auto",
             torch_dtype=torch.float16,
@@ -98,6 +104,12 @@ def load_base():
         model.config.use_cache = False
         model.gradient_checkpointing_enable()
 
+    resolved_revision = (
+        getattr(model.config, "_commit_hash", None)
+        or tokenizer.init_kwargs.get("_commit_hash")
+        or requested_revision
+    )
+    revision_file.write_text(resolved_revision, encoding="utf-8")
     model.config.use_cache = False
     model.enable_input_require_grads()
     lora = LoraConfig(
@@ -246,7 +258,7 @@ def main():
     resolved_revision = (
         getattr(model.config, "_commit_hash", None)
         or tokenizer.init_kwargs.get("_commit_hash")
-        or CONFIG["base_revision"]
+        or requested_revision
     )
     metadata = {
         "base_model": BASE_MODEL,
