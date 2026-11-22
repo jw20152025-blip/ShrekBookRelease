@@ -46,10 +46,10 @@ Each line must be valid JSON. Keep the content you have permission to use.
 ## Dataset sources
 
 The importer fetches:
-- WikiText-103 (English encyclopedic text; CC BY-SA 4.0)
+- WikiText-103 (English Wikipedia-derived text; review the dataset release's CC BY-SA terms before redistribution)
 - OpenAssistant OASST1 (English instruction conversations; Apache-2.0)
 
-It filters OASST1 to English and excludes deleted / unsuitable records. Dataset versions and source metadata are recorded in `data/manifest.json`. The complete corpora are downloaded locally; they are not committed to Git.
+It filters OASST1 to English and excludes deleted / unsuitable records. Dataset versions and source metadata are recorded in `data/manifest.json`. The complete corpora are downloaded locally; they are not committed to Git. To keep the first run practical on the 2 GB GPU, training defaults to a shuffled 250,000-record slice and up to 8,000 validation records. Raise `max_train_records` in `config.json` to train on more of the imported corpus.
 
 ## Portable weights and data changes
 
