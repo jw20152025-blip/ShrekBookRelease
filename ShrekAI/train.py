@@ -54,6 +54,19 @@ def load_base():
         except Exception as exc:
             print(f"[ShrekAI] 4-bit backend unavailable; using standard loading: {exc}")
 
+    # The MX570 in this PC has only 2 GB VRAM. If 4-bit loading is not
+    # available, prefer reliable CPU training over a predictable CUDA OOM.
+    if torch.cuda.is_available() and not use_4bit:
+        total_vram = torch.cuda.get_device_properties(0).total_memory
+        if total_vram < 4 * 1024**3:
+            print("[ShrekAI] Less than 4 GB VRAM and no 4-bit backend; using CPU mode.")
+            torch.cuda.empty_cache()
+            cuda_training = False
+        else:
+            cuda_training = True
+    else:
+        cuda_training = use_4bit
+
     if use_4bit:
         model = AutoModelForCausalLM.from_pretrained(
             BASE_MODEL,
@@ -67,14 +80,14 @@ def load_base():
             use_gradient_checkpointing=True,
         )
     else:
-        if torch.cuda.is_available():
+        if cuda_training:
             dtype = torch.float16
             device_map = "auto"
-            print("[ShrekAI] Using CUDA FP16. The 2 GB MX570 is tight; micro-batch 1 and checkpointing are enabled.")
+            print("[ShrekAI] Using CUDA FP16 with micro-batch 1 and checkpointing.")
         else:
             dtype = torch.float32
             device_map = None
-            print("[ShrekAI] Using CPU FP32. Compatible but slower.")
+            print("[ShrekAI] Using CPU FP32. This avoids out-of-memory errors but is slower.")
         model = AutoModelForCausalLM.from_pretrained(
             BASE_MODEL,
             revision=CONFIG["base_revision"],
@@ -100,7 +113,7 @@ def load_base():
     )
     model = get_peft_model(model, lora)
     model.print_trainable_parameters()
-    return model, tokenizer
+    return model, tokenizer, cuda_training
 
 
 def record_to_text(record, tokenizer):
@@ -141,7 +154,7 @@ def main():
     if not (DATA_DIR / "validation.jsonl").exists():
         raise SystemExit("Validation data is missing. Run the data importer first.")
 
-    model, tokenizer = load_base()
+    model, tokenizer, cuda_training = load_base()
     raw = load_dataset(
         "json",
         data_files={
@@ -203,7 +216,7 @@ def main():
         eval_strategy="steps",
         save_strategy="steps",
         save_total_limit=3,
-        fp16=torch.cuda.is_available(),
+        fp16=cuda_training,
         bf16=False,
         gradient_checkpointing=True,
         optim="adamw_torch",
